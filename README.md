@@ -1,7 +1,5 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg)
 
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg)
-
 # AY-3-8193 PSG in Verilog for Tiny Tapeout 5 (WIP)
 
 Info
