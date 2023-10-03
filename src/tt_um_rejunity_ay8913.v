@@ -1,7 +1,7 @@
 /* verilator lint_off WIDTH */
 `default_nettype none
 
-module tt_um_rejunity_ay8193 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 1,
+module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 1,
                                  parameter ATTENUATION_CONTROL_BITS = 4,
                                  parameter FREQUENCY_COUNTER_BITS = 10, 
                                  parameter NOISE_CONTROL_BITS = 3,

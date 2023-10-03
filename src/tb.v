@@ -26,7 +26,7 @@ module tb ();
     wire rst_n;
     wire ena;
 
-    tt_um_rejunity_ay8193 tt_um_rejunity_ay8193_uut 
+    tt_um_rejunity_ay8913 tt_um_rejunity_ay8913_uut 
     (
         // include power ports for the Gate Level test
         `ifdef GL_TEST
