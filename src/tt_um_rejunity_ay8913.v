@@ -27,90 +27,90 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     reg [3:0] latched_register;
     reg latch;
 
-    // 12 * 3 + 5 + 6 + 3 + 3*4 + 16 + 4 = 82 
-    reg [11:0]  tone_period_A, tone_period_B, tone_period_C;
-    reg [4:0]   noise_period;
-    // reg [5:0]   mixer_control;
-    reg         tone_enable_A, tone_enable_B, tone_enable_C;
-    reg         noise_enable_A, noise_enable_B, noise_enable_C;
-    reg         mute_A, mute_B, mute_C;
-    reg [3:0]   amplitude_A, amplitude_B, amplitude_C;
-    reg [15:0]  envelope_period;
-    // reg [3:0]  envelope_shape;
-    reg         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
+    // // 12 * 3 + 5 + 6 + 3 + 3*4 + 16 + 4 = 82 
+    // reg [11:0]  tone_period_A, tone_period_B, tone_period_C;
+    // reg [4:0]   noise_period;
+    // // reg [5:0]   mixer_control;
+    // reg         tone_enable_A, tone_enable_B, tone_enable_C;
+    // reg         noise_enable_A, noise_enable_B, noise_enable_C;
+    // reg         mute_A, mute_B, mute_C;
+    // reg [3:0]   amplitude_A, amplitude_B, amplitude_C;
+    // reg [15:0]  envelope_period;
+    // // reg [3:0]  envelope_shape;
+    // reg         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
 
-    always @(posedge clk) begin
-        if (reset) begin
-            latched_register <= 0;
-            latch <= 0;
+    // always @(posedge clk) begin
+    //     if (reset) begin
+    //         latched_register <= 0;
+    //         latch <= 0;
 
-            tone_period_A               <= 0;
-            tone_period_B               <= 0;
-            tone_period_C               <= 0;
-            noise_period                <= 0;
-            {tone_enable_A,
-             tone_enable_B,
-             tone_enable_C,
-             noise_enable_A,
-             noise_enable_B,
-             noise_enable_C}            <= 0;
-            {mute_A, amplitude_A}       <= 0;
-            {mute_B, amplitude_B}       <= 0;
-            {mute_C, amplitude_C}       <= 0;
-            envelope_period[7:0]        <= 0;
-            envelope_period[15:8]       <= 0;
-            // envelope_shape              <= 0;
-            {envelope_continue,
-             envelope_attack,
-             envelope_alternate,
-             envelope_hold}             <= 0;
-        end else begin
-            latch <= ! latch;
-            if (latch)
-                latched_register <= data[3:0];
-            else begin
-                case(latched_register)
-                    0: tone_period_A[7:0]       <= data;
-                    1: tone_period_A[11:8]      <= data[3:0];
-                    2: tone_period_B[7:0]       <= data;
-                    3: tone_period_B[11:8]      <= data[3:0];
-                    4: tone_period_C[7:0]       <= data;
-                    5: tone_period_C[11:8]      <= data[3:0];
-                    6: noise_period             <= data[4:0];
-                    7: {tone_enable_A,
-                        tone_enable_B,
-                        tone_enable_C,
-                        noise_enable_A,
-                        noise_enable_B,
-                        noise_enable_C}         <= data[5:0];
-                    // 7: mixer_control            <= data[5:0];
-                    8: {mute_A, amplitude_A}    <= data[4:0];
-                    9: {mute_B, amplitude_B}    <= data[4:0];
-                    10:{mute_C, amplitude_C}    <= data[4:0];
-                    11:envelope_period[7:0]     <= data;
-                    12:envelope_period[15:8]    <= data;
-                    // 13:envelope_shape           <= data[3:0];
-                    13:{envelope_continue,
-                        envelope_attack,
-                        envelope_alternate,
-                        envelope_hold}          <= data[3:0];
-                    // default:
-                endcase
-            end
-        end
-    end
+    //         tone_period_A               <= 0;
+    //         tone_period_B               <= 0;
+    //         tone_period_C               <= 0;
+    //         noise_period                <= 0;
+    //         {tone_enable_A,
+    //          tone_enable_B,
+    //          tone_enable_C,
+    //          noise_enable_A,
+    //          noise_enable_B,
+    //          noise_enable_C}            <= 0;
+    //         {mute_A, amplitude_A}       <= 0;
+    //         {mute_B, amplitude_B}       <= 0;
+    //         {mute_C, amplitude_C}       <= 0;
+    //         envelope_period[7:0]        <= 0;
+    //         envelope_period[15:8]       <= 0;
+    //         // envelope_shape              <= 0;
+    //         {envelope_continue,
+    //          envelope_attack,
+    //          envelope_alternate,
+    //          envelope_hold}             <= 0;
+    //     end else begin
+    //         latch <= ! latch;
+    //         if (latch)
+    //             latched_register <= data[3:0];
+    //         else begin
+    //             case(latched_register)
+    //                 0: tone_period_A[7:0]       <= data;
+    //                 1: tone_period_A[11:8]      <= data[3:0];
+    //                 2: tone_period_B[7:0]       <= data;
+    //                 3: tone_period_B[11:8]      <= data[3:0];
+    //                 4: tone_period_C[7:0]       <= data;
+    //                 5: tone_period_C[11:8]      <= data[3:0];
+    //                 6: noise_period             <= data[4:0];
+    //                 7: {tone_enable_A,
+    //                     tone_enable_B,
+    //                     tone_enable_C,
+    //                     noise_enable_A,
+    //                     noise_enable_B,
+    //                     noise_enable_C}         <= data[5:0];
+    //                 // 7: mixer_control            <= data[5:0];
+    //                 8: {mute_A, amplitude_A}    <= data[4:0];
+    //                 9: {mute_B, amplitude_B}    <= data[4:0];
+    //                 10:{mute_C, amplitude_C}    <= data[4:0];
+    //                 11:envelope_period[7:0]     <= data;
+    //                 12:envelope_period[15:8]    <= data;
+    //                 // 13:envelope_shape           <= data[3:0];
+    //                 13:{envelope_continue,
+    //                     envelope_attack,
+    //                     envelope_alternate,
+    //                     envelope_hold}          <= data[3:0];
+    //                 // default:
+    //             endcase
+    //         end
+    //     end
+    // end
 
-    assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
-                            (&noise_period) |
-                            //(&mixer_control) |
-                            (&{tone_enable_A, tone_enable_B, tone_enable_C,
-                            noise_enable_A, noise_enable_B, noise_enable_C}) |
-                            mute_A | (&amplitude_A) |
-                            mute_B | (&amplitude_B) |
-                            mute_C | (&amplitude_C) |
-                            (&envelope_period) |
-                            // (&envelope_shape);
-                            (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
+    // assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
+    //                         (&noise_period) |
+    //                         //(&mixer_control) |
+    //                         (&{tone_enable_A, tone_enable_B, tone_enable_C,
+    //                         noise_enable_A, noise_enable_B, noise_enable_C}) |
+    //                         mute_A | (&amplitude_A) |
+    //                         mute_B | (&amplitude_B) |
+    //                         mute_C | (&amplitude_C) |
+    //                         (&envelope_period) |
+    //                         // (&envelope_shape);
+    //                         (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
 
     // 16.16%   5474
     // Fill    decap fill  1368
@@ -128,43 +128,61 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     // 328 total cells (excluding fill and tap cells)
 
 
-    // reg [7:0] registers[15:0]; // used 82 out of 128 
+    reg [7:0] registers[15:0]; // used 82 out of 128 
 
-    // always @(posedge clk) begin
-    //     if (reset) begin
-    //         latched_register <= 0;
-    //         latch <= 0;
-    //     end else begin
-    //         latch <= ! latch;
-    //         if (latch)
-    //             latched_register <= data[3:0];
-    //         else
-    //             registers[latched_register] <= data;
-    //     end
-    // end
+    always @(posedge clk) begin
+        if (reset) begin
+            latched_register <= 0;
+            latch <= 0;
 
-    // wire [7:0] r0 = registers[0];
-    // wire [7:0] r1 = registers[1];
-    // wire [7:0] r2 = registers[2];
-    // wire [7:0] r3 = registers[3];
-    // wire [7:0] r4 = registers[4];
-    // wire [7:0] r5 = registers[5];
-    // wire [7:0] r6 = registers[6];
-    // wire [7:0] r7 = registers[7];
-    // wire [7:0] r8 = registers[8];
-    // wire [7:0] r9 = registers[9];
-    // wire [7:0] r10 = registers[10];
-    // wire [7:0] r11 = registers[11];
-    // wire [7:0] r12 = registers[12];
-    // wire [7:0] r13 = registers[13];
-    // wire [7:0] r14 = registers[14];
-    // wire [7:0] r15 = registers[15];
+            registers[0] <= 0;
+            registers[1] <= 0;
+            registers[2] <= 0;
+            registers[3] <= 0;
+            registers[4] <= 0;
+            registers[5] <= 0;
+            registers[6] <= 0;
+            registers[7] <= 0;
+            registers[8] <= 0;
+            registers[9] <= 0;
+            registers[10] <= 0;
+            registers[11] <= 0;
+            registers[12] <= 0;
+            registers[13] <= 0;
+            registers[14] <= 0;
+            registers[15] <= 0;
 
-    // assign uo_out[7:0] =    (&r0) | (&r1[3:0]) | (&r2) | (&r3[3:0]) | (&r4) | (&r5[3:0]) |
-    //                         (&r6[4:0]) | (&r7[5:0]) |
-    //                         (&r8[4:0]) | (&r9[4:0]) | (&r10[4:0]) |
-    //                         (&r11) | (&r12) |
-    //                         (&r13[3:0]);
+        end else begin
+            latch <= ! latch;
+            if (latch)
+                latched_register <= data[3:0];
+            else
+                registers[latched_register] <= data;
+        end
+    end
+
+    wire [7:0] r0 = registers[0];
+    wire [7:0] r1 = registers[1];
+    wire [7:0] r2 = registers[2];
+    wire [7:0] r3 = registers[3];
+    wire [7:0] r4 = registers[4];
+    wire [7:0] r5 = registers[5];
+    wire [7:0] r6 = registers[6];
+    wire [7:0] r7 = registers[7];
+    wire [7:0] r8 = registers[8];
+    wire [7:0] r9 = registers[9];
+    wire [7:0] r10 = registers[10];
+    wire [7:0] r11 = registers[11];
+    wire [7:0] r12 = registers[12];
+    wire [7:0] r13 = registers[13];
+    wire [7:0] r14 = registers[14];
+    wire [7:0] r15 = registers[15];
+
+    assign uo_out[7:0] =    (&r0) | (&r1[3:0]) | (&r2) | (&r3[3:0]) | (&r4) | (&r5[3:0]) |
+                            (&r6[4:0]) | (&r7[5:0]) |
+                            (&r8[4:0]) | (&r9[4:0]) | (&r10[4:0]) |
+                            (&r11) | (&r12) |
+                            (&r13[3:0]);
     
 
     // // The SN76489 has 8 control "registers":
