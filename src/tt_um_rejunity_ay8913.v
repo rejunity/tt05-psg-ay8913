@@ -145,62 +145,82 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     // NAND    nand2b nand2    2
     // 402 total cells (excluding fill and tap cells)
 
-    reg [7:0] registers[15:0]; // used 82 out of 128 
+    reg [7:0] register[15:0]; // used 82 bits out of 128 
 
     always @(posedge clk) begin
         if (reset) begin
             latched_register <= 0;
             latch <= 0;
 
-            registers[0] <= 0;
-            registers[1] <= 0;
-            registers[2] <= 0;
-            registers[3] <= 0;
-            registers[4] <= 0;
-            registers[5] <= 0;
-            registers[6] <= 0;
-            registers[7] <= 0;
-            registers[8] <= 0;
-            registers[9] <= 0;
-            registers[10] <= 0;
-            registers[11] <= 0;
-            registers[12] <= 0;
-            registers[13] <= 0;
-            registers[14] <= 0;
-            registers[15] <= 0;
+            for (integer i = 0; i < 16; i = i + 1) begin
+                register[i] <= 0;
+            end
 
         end else begin
             latch <= ! latch;
             if (latch)
                 latched_register <= data[3:0];
             else
-                registers[latched_register] <= data;
+                register[latched_register] <= data;
         end
     end
 
-    wire [7:0] r0 = registers[0];
-    wire [7:0] r1 = registers[1];
-    wire [7:0] r2 = registers[2];
-    wire [7:0] r3 = registers[3];
-    wire [7:0] r4 = registers[4];
-    wire [7:0] r5 = registers[5];
-    wire [7:0] r6 = registers[6];
-    wire [7:0] r7 = registers[7];
-    wire [7:0] r8 = registers[8];
-    wire [7:0] r9 = registers[9];
-    wire [7:0] r10 = registers[10];
-    wire [7:0] r11 = registers[11];
-    wire [7:0] r12 = registers[12];
-    wire [7:0] r13 = registers[13];
-    wire [7:0] r14 = registers[14];
-    wire [7:0] r15 = registers[15];
+    // PSG Register Array
+    //     7 6 5 4 3 2 1 0
+    // R0  x x x x x x x x Channel A Tone Period, Fine Tune
+    // R1          x x x x                        Coarse Tune
+    // R2  x x x x x x x x Channel B Tone Period, Fine Tune
+    // R3          x x x x                        Coarse Tune
+    // R4  x x x x x x x x Channel C Tone Period, Fine Tune
+    // R5          x x x x                        Coarse Tune
+    // R6        x x x x x Noise Period
+    // R7      x x x x x x Mixer (signals inverted): Noise /C, /B, /A; Tone /C, /B, /A
+    // R8        x x x x x Channel A Amplitude
+    // R9        x x x x x Channel B Amplitude
+    // R10       x x x x x Channel C Amplitude
+    // R11 x x x x x x x x Envelop Period, Fine Tune
+    // R12 x x x x x x x x                 Coarse Tune
+    // R13         x x x x Envelope Shape / Cycle 
 
-    assign uo_out[7:0] =    (&r0) | (&r1[3:0]) | (&r2) | (&r3[3:0]) | (&r4) | (&r5[3:0]) |
-                            (&r6[4:0]) | (&r7[5:0]) |
-                            (&r8[4:0]) | (&r9[4:0]) | (&r10[4:0]) |
-                            (&r11) | (&r12) |
-                            (&r13[3:0]);
-    
+    wire [11:0]  tone_period_A, tone_period_B, tone_period_C;
+    wire [4:0]   noise_period;
+    wire         tone_enable_A, tone_enable_B, tone_enable_C;
+    wire         noise_enable_A, noise_enable_B, noise_enable_C;
+    wire         mute_A, mute_B, mute_C;
+    wire [3:0]   amplitude_A, amplitude_B, amplitude_C;
+    wire [15:0]  envelope_period;
+    wire         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
+
+    assign tone_period_A[11:0] = {register[1][3:0], register[0][7:0]};
+    assign tone_period_B[11:0] = {register[3][3:0], register[2][7:0]};
+    assign tone_period_C[11:0] = {register[5][3:0], register[4][7:0]};
+    assign noise_period[4:0]   = register[6][4:0];
+    assign {noise_enable_C,
+            noise_enable_B,
+            noise_enable_A,
+            tone_enable_C,
+            tone_enable_B,
+            tone_enable_A} = ! register[7][5:0];
+    assign {mute_A, amplitude_A[3:0]} = register[ 8][4:0];
+    assign {mute_B, amplitude_B[3:0]} = register[ 9][4:0];
+    assign {mute_C, amplitude_C[3:0]} = register[10][4:0];
+    assign envelope_period[15:0] = {register[12][7:0], register[11][7:0]};
+    assign {envelope_continue,
+            envelope_attack,
+            envelope_alternate,
+            envelope_hold} = register[13][3:0];
+
+    assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
+                            (&noise_period) |
+                            //(&mixer_control) |
+                            (&{tone_enable_A, tone_enable_B, tone_enable_C,
+                            noise_enable_A, noise_enable_B, noise_enable_C}) |
+                            mute_A | (&amplitude_A) |
+                            mute_B | (&amplitude_B) |
+                            mute_C | (&amplitude_C) |
+                            (&envelope_period) |
+                            // (&envelope_shape);
+                            (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
 
     // // The SN76489 has 8 control "registers":
     // // - 4 x 4 bit volume registers (attenuation)
