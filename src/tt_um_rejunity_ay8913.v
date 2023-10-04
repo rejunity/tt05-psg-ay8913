@@ -24,9 +24,22 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     wire [7:0] data;
     assign data = ui_in;
 
-    reg [7:0] registers[15:0];
     reg [3:0] latched_register;
     reg latch;
+
+    reg [11:0] tone_period_A;
+    reg [11:0] tone_period_B;
+    reg [11:0] tone_period_C;
+    reg [4:0]  noise_period;
+    // reg [2:0]  tone_enable;
+    // reg [2:0]  noise_enable;
+    reg [5:0]  mixer_control;
+    reg        mute_A, mute_B, mute_C;
+    reg [3:0]  amplitude_A;
+    reg [3:0]  amplitude_B;
+    reg [3:0]  amplitude_C;
+    reg [15:0] envelope_period;
+    reg [3:0]  envelope_shape;
 
     always @(posedge clk) begin
         if (reset) begin
@@ -36,33 +49,73 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
             latch <= ! latch;
             if (latch)
                 latched_register <= data[3:0];
-            else
-                registers[latched_register] <= data;
+            else begin
+                case(latched_register)
+                    0: tone_period_A[7:0]           = data;
+                    1: tone_period_A[11:8]          = data[3:0];
+                    2: tone_period_B[7:0]           = data;
+                    3: tone_period_B[11:8]          = data[3:0];
+                    4: tone_period_C[7:0]           = data;
+                    5: tone_period_C[11:8]          = data[3:0];
+                    6: noise_period[4:0]            = data[4:0];
+                    7: mixer_control[5:0]           = data[5:0];
+                    8: {mute_A, amplitude_A[3:0]}   = data[4:0];
+                    9: {mute_B, amplitude_B[3:0]}   = data[4:0];
+                    10:{mute_C, amplitude_C[3:0]}   = data[4:0];
+                    11:envelope_period[7:0]         = data[7:0];
+                    12:envelope_period[15:8]        = data[7:0];
+                    13:envelope_shape[3:0]          = data[3:0];
+                    // default:
+                endcase
+            end
         end
     end
 
-    wire [7:0] r0 = registers[0];
-    wire [7:0] r1 = registers[1];
-    wire [7:0] r2 = registers[2];
-    wire [7:0] r3 = registers[3];
-    wire [7:0] r4 = registers[4];
-    wire [7:0] r5 = registers[5];
-    wire [7:0] r6 = registers[6];
-    wire [7:0] r7 = registers[7];
-    wire [7:0] r8 = registers[8];
-    wire [7:0] r9 = registers[9];
-    wire [7:0] r10 = registers[10];
-    wire [7:0] r11 = registers[11];
-    wire [7:0] r12 = registers[12];
-    wire [7:0] r13 = registers[13];
-    wire [7:0] r14 = registers[14];
-    wire [7:0] r15 = registers[15];
+    assign uo_out[7:0] =    tone_period_A & tone_period_B & tone_period_C &
+                            noise_period & mixer_control & 
+                            mute_A & amplitude_A &
+                            mute_B & amplitude_B &
+                            mute_C & amplitude_C &
+                            envelope_period & envelope_shape;
 
-    assign uo_out[7:0] =    r0 & r1[3:0] & r2 & r3[3:0] & r4 & r5[3:0] &
-                            r6[4:0] & r7[5:0] &
-                            r8[4:0] & r9[4:0] & r10[4:0] &
-                            r11 & r12 &
-                            r13[3:0];
+
+    // reg [7:0] registers[15:0];
+
+    // always @(posedge clk) begin
+    //     if (reset) begin
+    //         latched_register <= 0;
+    //         latch <= 0;
+    //     end else begin
+    //         latch <= ! latch;
+    //         if (latch)
+    //             latched_register <= data[3:0];
+    //         else
+    //             registers[latched_register] <= data;
+    //     end
+    // end
+
+    // wire [7:0] r0 = registers[0];
+    // wire [7:0] r1 = registers[1];
+    // wire [7:0] r2 = registers[2];
+    // wire [7:0] r3 = registers[3];
+    // wire [7:0] r4 = registers[4];
+    // wire [7:0] r5 = registers[5];
+    // wire [7:0] r6 = registers[6];
+    // wire [7:0] r7 = registers[7];
+    // wire [7:0] r8 = registers[8];
+    // wire [7:0] r9 = registers[9];
+    // wire [7:0] r10 = registers[10];
+    // wire [7:0] r11 = registers[11];
+    // wire [7:0] r12 = registers[12];
+    // wire [7:0] r13 = registers[13];
+    // wire [7:0] r14 = registers[14];
+    // wire [7:0] r15 = registers[15];
+
+    // assign uo_out[7:0] =    r0 & r1[3:0] & r2 & r3[3:0] & r4 & r5[3:0] &
+    //                         r6[4:0] & r7[5:0] &
+    //                         r8[4:0] & r9[4:0] & r10[4:0] &
+    //                         r11 & r12 &
+    //                         r13[3:0];
     
 
     // // The SN76489 has 8 control "registers":

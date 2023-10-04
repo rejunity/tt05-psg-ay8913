@@ -10,11 +10,11 @@ that can be driven / tested by the cocotb test.py
 module tb ();
 
     // this part dumps the trace to a vcd file that can be viewed with GTKWave
-    // initial begin
-    //     $dumpfile ("tb.vcd");
-    //     $dumpvars (0, tb);
-    //     #1;
-    // end
+    initial begin
+        $dumpfile ("tb.vcd");
+        $dumpvars (0, tb);
+        #1;
+    end
 
     // wire up the inputs and outputs
     wire [7:0] ui_in;
