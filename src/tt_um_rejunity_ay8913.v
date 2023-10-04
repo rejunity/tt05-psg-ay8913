@@ -100,15 +100,15 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
         end
     end
 
-    assign uo_out[7:0] =    (&tone_period_A) + (&tone_period_B) + (&tone_period_C) +
-                            (&noise_period) +
-                            //(&mixer_control) +
+    assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
+                            (&noise_period) |
+                            //(&mixer_control) |
                             (&{tone_enable_A, tone_enable_B, tone_enable_C,
-                            noise_enable_A, noise_enable_B, noise_enable_C}) +
-                            mute_A + (&amplitude_A) +
-                            mute_B + (&amplitude_B) +
-                            mute_C + (&amplitude_C) +
-                            (&envelope_period) +
+                            noise_enable_A, noise_enable_B, noise_enable_C}) |
+                            mute_A | (&amplitude_A) |
+                            mute_B | (&amplitude_B) |
+                            mute_C | (&amplitude_C) |
+                            (&envelope_period) |
                             // (&envelope_shape);
                             (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
 
