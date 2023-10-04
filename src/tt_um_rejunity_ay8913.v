@@ -160,11 +160,11 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     // wire [7:0] r14 = registers[14];
     // wire [7:0] r15 = registers[15];
 
-    // assign uo_out[7:0] =    r0 & r1[3:0] & r2 & r3[3:0] & r4 & r5[3:0] &
-    //                         r6[4:0] & r7[5:0] &
-    //                         r8[4:0] & r9[4:0] & r10[4:0] &
-    //                         r11 & r12 &
-    //                         r13[3:0];
+    // assign uo_out[7:0] =    (&r0) | (&r1[3:0]) | (&r2) | (&r3[3:0]) | (&r4) | (&r5[3:0]) |
+    //                         (&r6[4:0]) | (&r7[5:0]) |
+    //                         (&r8[4:0]) | (&r9[4:0]) | (&r10[4:0]) |
+    //                         (&r11) | (&r12) |
+    //                         (&r13[3:0]);
     
 
     // // The SN76489 has 8 control "registers":
