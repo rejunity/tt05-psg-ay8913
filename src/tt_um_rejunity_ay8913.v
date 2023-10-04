@@ -27,59 +27,84 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     reg [3:0] latched_register;
     reg latch;
 
-    reg [11:0] tone_period_A;
-    reg [11:0] tone_period_B;
-    reg [11:0] tone_period_C;
-    reg [4:0]  noise_period;
-    // reg [2:0]  tone_enable;
-    // reg [2:0]  noise_enable;
-    reg [5:0]  mixer_control;
-    reg        mute_A, mute_B, mute_C;
-    reg [3:0]  amplitude_A;
-    reg [3:0]  amplitude_B;
-    reg [3:0]  amplitude_C;
-    reg [15:0] envelope_period;
+    // 12 * 3 + 5 + 6 + 3 + 3*4 + 16 + 4 = 82 
+    reg [11:0]  tone_period_A, tone_period_B, tone_period_C;
+    reg [4:0]   noise_period;
+    // reg         tone_enable_A, tone_enable_B, tone_enable_C;
+    // reg         noise_enable_A, noise_enable_B, noise_enable_C;
+    reg [5:0]   mixer_control;
+    reg         mute_A, mute_B, mute_C;
+    reg [3:0]   amplitude_A, amplitude_B, amplitude_C;
+    reg [15:0]  envelope_period;
     reg [3:0]  envelope_shape;
+    // reg         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
 
     always @(posedge clk) begin
         if (reset) begin
             latched_register <= 0;
             latch <= 0;
+
+            tone_period_A                <= 0;
+            tone_period_B                <= 0;
+            tone_period_C                <= 0;
+            noise_period                 <= 0;
+            mixer_control                <= 0;
+            {mute_A, amplitude_A}        <= 0;
+            {mute_B, amplitude_B}        <= 0;
+            {mute_C, amplitude_C}        <= 0;
+            envelope_period[7:0]         <= 0;
+            envelope_period[15:8]        <= 0;
+            envelope_shape               <= 0;
         end else begin
             latch <= ! latch;
             if (latch)
                 latched_register <= data[3:0];
             else begin
                 case(latched_register)
-                    0: tone_period_A[7:0]           = data;
-                    1: tone_period_A[11:8]          = data[3:0];
-                    2: tone_period_B[7:0]           = data;
-                    3: tone_period_B[11:8]          = data[3:0];
-                    4: tone_period_C[7:0]           = data;
-                    5: tone_period_C[11:8]          = data[3:0];
-                    6: noise_period[4:0]            = data[4:0];
-                    7: mixer_control[5:0]           = data[5:0];
-                    8: {mute_A, amplitude_A[3:0]}   = data[4:0];
-                    9: {mute_B, amplitude_B[3:0]}   = data[4:0];
-                    10:{mute_C, amplitude_C[3:0]}   = data[4:0];
-                    11:envelope_period[7:0]         = data[7:0];
-                    12:envelope_period[15:8]        = data[7:0];
-                    13:envelope_shape[3:0]          = data[3:0];
+                    0: tone_period_A[7:0]       = data;
+                    1: tone_period_A[11:8]      = data[3:0];
+                    2: tone_period_B[7:0]       = data;
+                    3: tone_period_B[11:8]      = data[3:0];
+                    4: tone_period_C[7:0]       = data;
+                    5: tone_period_C[11:8]      = data[3:0];
+                    6: noise_period             = data[4:0];
+                    7: mixer_control            = data[5:0];
+                    8: {mute_A, amplitude_A}    = data[4:0];
+                    9: {mute_B, amplitude_B}    = data[4:0];
+                    10:{mute_C, amplitude_C}    = data[4:0];
+                    11:envelope_period[7:0]     = data;
+                    12:envelope_period[15:8]    = data;
+                    13:envelope_shape           = data[3:0];
                     // default:
                 endcase
             end
         end
     end
 
-    assign uo_out[7:0] =    tone_period_A & tone_period_B & tone_period_C &
-                            noise_period & mixer_control & 
-                            mute_A & amplitude_A &
-                            mute_B & amplitude_B &
-                            mute_C & amplitude_C &
-                            envelope_period & envelope_shape;
+    assign uo_out[7:0] =    (&tone_period_A) + (&tone_period_B) + (&tone_period_C) +
+                            (&noise_period) + (&mixer_control) +
+                            mute_A + (&amplitude_A) +
+                            mute_B + (&amplitude_B) +
+                            mute_C + (&amplitude_C) +
+                            (&envelope_period) + (&envelope_shape);
+
+    // 16.16%   5474
+    // Fill    decap fill  1368
+    // Tap tapvpwrvgnd 246
+    // Buffer  clkbuf buf  84
+    // Misc    dlygate4sd3 conb    76
+    // Flip Flops  dfxtp   61
+    // Multiplexer mux2    60
+    // AND and4 and3 and2  24
+    // Combo Logic or3b or4b nor3b and2b or2b or4bb    10
+    // OR  or2 5
+    // NOR nor2    5
+    // NAND    nand2   2
+    // Diode   diode   1
+    // 328 total cells (excluding fill and tap cells)
 
 
-    // reg [7:0] registers[15:0];
+    // reg [7:0] registers[15:0]; // used 82 out of 128 
 
     // always @(posedge clk) begin
     //     if (reset) begin
