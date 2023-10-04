@@ -27,6 +27,22 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     reg [3:0] latched_register;
     reg latch;
 
+
+    // experiment B
+    // 24.18%   9132um
+    // Fill    decap fill  1293
+    // Tap tapvpwrvgnd 246
+    // Misc    dlymetal6s2s dlygate4sd3 conb   94
+    // OR  or3 or4 or2 89
+    // Flip Flops  dfxtp   87
+    // Combo Logic a31o a311o a41o o211a or2b or3b and2b   82
+    // Buffer  buf clkbuf  54
+    // AND and4 and3 and2  37
+    // Multiplexer mux2    16
+    // NOR nor2    11
+    // NAND    nand2   2
+    // 472 total cells (excluding fill and tap cells)
+
     // // 12 * 3 + 5 + 6 + 3 + 3*4 + 16 + 4 = 82 
     // reg [11:0]  tone_period_A, tone_period_B, tone_period_C;
     // reg [4:0]   noise_period;
@@ -112,21 +128,22 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     //                         // (&envelope_shape);
     //                         (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
 
-    // 16.16%   5474
-    // Fill    decap fill  1368
-    // Tap tapvpwrvgnd 246
-    // Buffer  clkbuf buf  84
-    // Misc    dlygate4sd3 conb    76
-    // Flip Flops  dfxtp   61
-    // Multiplexer mux2    60
-    // AND and4 and3 and2  24
-    // Combo Logic or3b or4b nor3b and2b or2b or4bb    10
-    // OR  or2 5
-    // NOR nor2    5
-    // NAND    nand2   2
-    // Diode   diode   1
-    // 328 total cells (excluding fill and tap cells)
 
+
+    // experiment A
+    // 22.4%    7855um
+    // Fill    decap fill  1319
+    // Tap tapvpwrvgnd 246  
+    // Flip Flops  dfxtp   87
+    // Combo Logic a32o a31o a22o a311o a41o and2b or3b o21a and3b or2b nor3b nand3b nand4b and4bb 81
+    // Misc    dlygate4sd3 conb    79
+    // Buffer  buf clkbuf  62
+    // AND and3 and4 and2  50
+    // Multiplexer mux2    29
+    // NOR nor2    8
+    // OR  or4 or2 4
+    // NAND    nand2b nand2    2
+    // 402 total cells (excluding fill and tap cells)
 
     reg [7:0] registers[15:0]; // used 82 out of 128 
 
