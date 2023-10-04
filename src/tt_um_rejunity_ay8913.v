@@ -70,30 +70,30 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
                 latched_register <= data[3:0];
             else begin
                 case(latched_register)
-                    0: tone_period_A[7:0]       = data;
-                    1: tone_period_A[11:8]      = data[3:0];
-                    2: tone_period_B[7:0]       = data;
-                    3: tone_period_B[11:8]      = data[3:0];
-                    4: tone_period_C[7:0]       = data;
-                    5: tone_period_C[11:8]      = data[3:0];
-                    6: noise_period             = data[4:0];
+                    0: tone_period_A[7:0]       <= data;
+                    1: tone_period_A[11:8]      <= data[3:0];
+                    2: tone_period_B[7:0]       <= data;
+                    3: tone_period_B[11:8]      <= data[3:0];
+                    4: tone_period_C[7:0]       <= data;
+                    5: tone_period_C[11:8]      <= data[3:0];
+                    6: noise_period             <= data[4:0];
                     7: {tone_enable_A,
                         tone_enable_B,
                         tone_enable_C,
                         noise_enable_A,
                         noise_enable_B,
-                        noise_enable_C}         = data[5:0];
-                    // 7: mixer_control            = data[5:0];
-                    8: {mute_A, amplitude_A}    = data[4:0];
-                    9: {mute_B, amplitude_B}    = data[4:0];
-                    10:{mute_C, amplitude_C}    = data[4:0];
-                    11:envelope_period[7:0]     = data;
-                    12:envelope_period[15:8]    = data;
-                    // 13:envelope_shape           = data[3:0];
+                        noise_enable_C}         <= data[5:0];
+                    // 7: mixer_control            <= data[5:0];
+                    8: {mute_A, amplitude_A}    <= data[4:0];
+                    9: {mute_B, amplitude_B}    <= data[4:0];
+                    10:{mute_C, amplitude_C}    <= data[4:0];
+                    11:envelope_period[7:0]     <= data;
+                    12:envelope_period[15:8]    <= data;
+                    // 13:envelope_shape           <= data[3:0];
                     13:{envelope_continue,
                         envelope_attack,
                         envelope_alternate,
-                        envelope_hold}          = data[3:0];
+                        envelope_hold}          <= data[3:0];
                     // default:
                 endcase
             end
