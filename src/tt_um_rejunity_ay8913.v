@@ -30,31 +30,40 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     // 12 * 3 + 5 + 6 + 3 + 3*4 + 16 + 4 = 82 
     reg [11:0]  tone_period_A, tone_period_B, tone_period_C;
     reg [4:0]   noise_period;
-    // reg         tone_enable_A, tone_enable_B, tone_enable_C;
-    // reg         noise_enable_A, noise_enable_B, noise_enable_C;
-    reg [5:0]   mixer_control;
+    // reg [5:0]   mixer_control;
+    reg         tone_enable_A, tone_enable_B, tone_enable_C;
+    reg         noise_enable_A, noise_enable_B, noise_enable_C;
     reg         mute_A, mute_B, mute_C;
     reg [3:0]   amplitude_A, amplitude_B, amplitude_C;
     reg [15:0]  envelope_period;
-    reg [3:0]  envelope_shape;
-    // reg         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
+    // reg [3:0]  envelope_shape;
+    reg         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
 
     always @(posedge clk) begin
         if (reset) begin
             latched_register <= 0;
             latch <= 0;
 
-            tone_period_A                <= 0;
-            tone_period_B                <= 0;
-            tone_period_C                <= 0;
-            noise_period                 <= 0;
-            mixer_control                <= 0;
-            {mute_A, amplitude_A}        <= 0;
-            {mute_B, amplitude_B}        <= 0;
-            {mute_C, amplitude_C}        <= 0;
-            envelope_period[7:0]         <= 0;
-            envelope_period[15:8]        <= 0;
-            envelope_shape               <= 0;
+            tone_period_A               <= 0;
+            tone_period_B               <= 0;
+            tone_period_C               <= 0;
+            noise_period                <= 0;
+            {tone_enable_A,
+             tone_enable_B,
+             tone_enable_C,
+             noise_enable_A,
+             noise_enable_B,
+             noise_enable_C}            <= 0;
+            {mute_A, amplitude_A}       <= 0;
+            {mute_B, amplitude_B}       <= 0;
+            {mute_C, amplitude_C}       <= 0;
+            envelope_period[7:0]        <= 0;
+            envelope_period[15:8]       <= 0;
+            // envelope_shape              <= 0;
+            {envelope_continue,
+             envelope_attack,
+             envelope_alternate,
+             envelope_hold}             <= 0;
         end else begin
             latch <= ! latch;
             if (latch)
@@ -68,13 +77,23 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
                     4: tone_period_C[7:0]       = data;
                     5: tone_period_C[11:8]      = data[3:0];
                     6: noise_period             = data[4:0];
-                    7: mixer_control            = data[5:0];
+                    7: {tone_enable_A,
+                        tone_enable_B,
+                        tone_enable_C,
+                        noise_enable_A,
+                        noise_enable_B,
+                        noise_enable_C}         = data[5:0];
+                    // 7: mixer_control            = data[5:0];
                     8: {mute_A, amplitude_A}    = data[4:0];
                     9: {mute_B, amplitude_B}    = data[4:0];
                     10:{mute_C, amplitude_C}    = data[4:0];
                     11:envelope_period[7:0]     = data;
                     12:envelope_period[15:8]    = data;
-                    13:envelope_shape           = data[3:0];
+                    // 13:envelope_shape           = data[3:0];
+                    13:{envelope_continue,
+                        envelope_attack,
+                        envelope_alternate,
+                        envelope_hold}          = data[3:0];
                     // default:
                 endcase
             end
@@ -82,11 +101,16 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     end
 
     assign uo_out[7:0] =    (&tone_period_A) + (&tone_period_B) + (&tone_period_C) +
-                            (&noise_period) + (&mixer_control) +
+                            (&noise_period) +
+                            //(&mixer_control) +
+                            (&{tone_enable_A, tone_enable_B, tone_enable_C,
+                            noise_enable_A, noise_enable_B, noise_enable_C}) +
                             mute_A + (&amplitude_A) +
                             mute_B + (&amplitude_B) +
                             mute_C + (&amplitude_C) +
-                            (&envelope_period) + (&envelope_shape);
+                            (&envelope_period) +
+                            // (&envelope_shape);
+                            (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
 
     // 16.16%   5474
     // Fill    decap fill  1368
