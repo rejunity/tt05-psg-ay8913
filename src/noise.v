@@ -1,8 +1,13 @@
-/* verilator lint_off WIDTH */
+// FROM General Instruments AY-3-8910 / 8912 Programmable Sound Generator (PSG) data Manual.
+// Section 3.2 Noise Generator Control
+// ...
+// Note that the 6-bit value in R11 is a period value-the higher the value in the register,
+// the lower the resultant noise frequency. Note also that, as with the Tone Period,
+// the lowest period value is 00001 (divide by 1); the highest period value is 11111 (divide by 3110).
 
-// For the SMS (1 and 2), Genesis and Game Gear, the tapped bits are bits 0 and 3 ($0009), fed back into bit 15.
-// For the SG-1000, OMV, SC-3000H, BBC Micro and Colecovision, the tapped bits are bits 0 and 1 ($0003), fed back into bit 14.
-// For the Tandy 1000, the tapped bits are bits 0 and 4 ($0011), fed back into bit 14.    
+
+// @TODO: 6 bit and R11, WHAT?
+
 module noise #( parameter LFSR_BITS = 15, LFSR_TAP0 = 0, LFSR_TAP1 = 1, parameter COUNTER_BITS = 10 ) (
     input  wire clk,
     input  wire reset,
