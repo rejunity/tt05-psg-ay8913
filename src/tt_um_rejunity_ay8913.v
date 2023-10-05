@@ -164,14 +164,12 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     // just for testing
     assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
                             (&noise_period) |
-                            //(&mixer_control) |
                             (&{tone_disable_A, tone_disable_B, tone_disable_C,
                             noise_disable_A, noise_disable_B, noise_disable_C}) |
                             envelope_A | (&amplitude_A) |
                             envelope_B | (&amplitude_B) |
                             envelope_C | (&amplitude_C) |
                             (&envelope_period) |
-                            // (&envelope_shape);
                             (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
 
     // // The SN76489 has 8 control "registers":

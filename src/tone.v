@@ -1,8 +1,12 @@
 // FROM General Instruments AY-3-8910 / 8912 Programmable Sound Generator (PSG) data Manual.
 // Section 3.1 Tone Generator Control
-// ...
-// Note also that due to the design technique used in the Tone Period count-down,
-// the lowest period value is 000000000001 (divide by 1)
+// [..] the lowest period value is 000000000001 (divide by 1)
+
+// NOTE despite AY-3-891x manual stating that the tone counter is counted down
+// 1) reverse engineering: https://github.com/lvd2/ay-3-8910_reverse_engineered and
+// 2) studies of the chip output according to comments in MAME implementation,
+//    line 84 https://github.com/mamedev/mame/blob/master/src/devices/sound/ay8910.cpp
+// both determined that tone and noise counters are counted UP!
 
 module tone #( parameter COUNTER_BITS = 12 ) (
     input  wire clk,
