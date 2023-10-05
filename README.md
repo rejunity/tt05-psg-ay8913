@@ -1,6 +1,6 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg)
 
-# AY-3-8193 PSG in Verilog for Tiny Tapeout 5 (WIP)
+# AY-3-8913 PSG in Verilog for Tiny Tapeout 5 (WIP)
 
 Info
 * https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910
@@ -13,10 +13,10 @@ Info
 * https://www.atarimagazines.com/v4n7/stsound.html
 
 Compatible chips:
-* AY-3-8910, AY-3-8912, AY-3-8913, AY-3-8930
+* YMZ294, YMZ284, YMZ285
+* AY-3-8910, AY-3-8912, AY-3-8930
 * YM2149
 * YM3439
-* YMZ294, YMZ284, YMZ285
 * T7766A
 * WF19054, JFC 95101 and KC89C72
 * https://maidavale.org/blog/ay-ym-differences/
