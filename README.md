@@ -27,6 +27,7 @@ Computers that used AY-3-819x / YM2149
 Chip decap images and reverse engineering
 * https://github.com/lvd2/ay-3-8910_reverse_engineered
 * http://privatfrickler.de/blick-auf-den-chip-soundchip-general-instruments-ay-3-8910/
+* AY-3-8910 die size: 4.16 mm x 3.80 mm
 
 Implementations
 * https://github.com/jotego/jt49
