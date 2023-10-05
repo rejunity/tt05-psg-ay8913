@@ -8,6 +8,59 @@
 
 // @TODO: 6 bit and R11, WHAT?
 
+// https://github.com/lvd2/ay-3-8910_reverse_engineered/blob/master/rtl/ay_model.v
+// // noise LFSR
+// ay_model_shiftreg noise_shift_reg
+// (
+//     ._f(_f4),
+//     . f( f4),
+
+//     .rst(rst_1),
+
+//     .shift_in( (noise_reg[16] ^ noise_reg[13]) | (~|noise_reg) ),
+
+//     .result( noise_reg )
+// );
+// //
+// assign noise = ~noise_reg[16];
+
+
+// module ay_model_shiftreg
+// #(
+//     parameter WIDTH=17
+// )
+// (
+//     input  wire _f,
+//     input  wire  f,
+//     input  wire rst,
+
+//     input  wire shift_in,
+//     output wire [WIDTH-1:0] result
+// );
+//     wire [WIDTH-1:0] shin;
+//     trireg [WIDTH-1:0] l1;
+//     trireg [WIDTH-1:0] l2;
+//     // shift in
+//     assign shin = { l2[WIDTH-2:0], shift_in };
+//     assign l1 = rst ? {WIDTH{1'b0}} : (_f ? shin : {WIDTH{1'bZ}});
+//     assign l2 = f ? l1 : {WIDTH{1'bZ}};
+//     assign result = l2;
+
+// endmodule
+
+// https://github.com/mamedev/mame/blob/master/src/devices/sound/ay8910.h#L266
+// inline void noise_rng_tick()
+// {
+//     // The Random Number Generator of the 8910 is a 17-bit shift
+//     // register. The input to the shift register is bit0 XOR bit3
+//     // (bit0 is the output). This was verified on AY-3-8910 and YM2149 chips.
+
+//     if (m_feature & PSG_HAS_EXPANDED_MODE) // AY8930 LFSR algorithm is slightly different, verified from manual
+//         m_rng = (m_rng >> 1) | ((BIT(m_rng, 0) ^ BIT(m_rng, 2)) << 16);
+//     else
+//         m_rng = (m_rng >> 1) | ((BIT(m_rng, 0) ^ BIT(m_rng, 3)) << 16);
+// }
+    
 module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 1, parameter COUNTER_BITS = 5 ) (
     input  wire clk,
     input  wire reset,
