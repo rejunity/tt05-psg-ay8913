@@ -8,7 +8,7 @@
 
 // @TODO: 6 bit and R11, WHAT?
 
-module noise #( parameter LFSR_BITS = 15, LFSR_TAP0 = 0, LFSR_TAP1 = 1, parameter COUNTER_BITS = 10 ) (
+module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 1, parameter COUNTER_BITS = 5 ) (
     input  wire clk,
     input  wire reset,
     input  wire restart_noise,

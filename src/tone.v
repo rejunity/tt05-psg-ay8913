@@ -24,7 +24,7 @@ module tone #( parameter COUNTER_BITS = 12 ) (
                 counter <= compare;         // reset counter
                 state <= ~state;            // flip output state
             end else
-                counter <= counter - 1'b1;
+                counter <= counter - 1'b1; // @TODO: most likely must be upcounting
         end
     end
 

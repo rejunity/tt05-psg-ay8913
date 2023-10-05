@@ -69,12 +69,12 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     // R10       x x x x x Channel C Amplitude
     // R11 x x x x x x x x Envelop Period, Fine Tune
     // R12 x x x x x x x x                 Coarse Tune
-    // R13         x x x x Envelope Shape / Cycle 
+    // R13         x x x x Envelope Shape / Cycle
 
     wire [11:0]  tone_period_A, tone_period_B, tone_period_C;
     wire [4:0]   noise_period;
-    wire         tone_enable_A, tone_enable_B, tone_enable_C;
-    wire         noise_enable_A, noise_enable_B, noise_enable_C;
+    wire         tone_disable_A, tone_disable_B, tone_disable_C;
+    wire         noise_disable_A, noise_disable_B, noise_disable_C;
     wire         envelope_A, envelope_B, envelope_C;
     wire [3:0]   amplitude_A, amplitude_B, amplitude_C;
     wire [15:0]  envelope_period;
@@ -84,12 +84,12 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     assign tone_period_B[11:0] = {register[3][3:0], register[2][7:0]};
     assign tone_period_C[11:0] = {register[5][3:0], register[4][7:0]};
     assign noise_period[4:0]   = register[6][4:0];
-    assign {noise_enable_C,
-            noise_enable_B,
-            noise_enable_A,
-            tone_enable_C,
-            tone_enable_B,
-            tone_enable_A} = ! register[7][5:0];
+    assign {noise_disable_C,
+            noise_disable_B,
+            noise_disable_A,
+            tone_disable_C,
+            tone_disable_B,
+            tone_disable_A} = ! register[7][5:0];
     assign {envelope_A, amplitude_A[3:0]} = register[ 8][4:0];
     assign {envelope_B, amplitude_B[3:0]} = register[ 9][4:0];
     assign {envelope_C, amplitude_C[3:0]} = register[10][4:0];
@@ -98,7 +98,6 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             envelope_attack,
             envelope_alternate,
             envelope_hold} = register[13][3:0];
-
 
 
     wire tone_A, tone_B, tone_C, noise;
@@ -130,14 +129,20 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(noise)
         );
 
-    wire channel_A = tone_enable_A & tone_A; // @TODO: noise
-    wire channel_B = tone_enable_B & tone_B; // @TODO: noise
-    wire channel_C = tone_enable_C & tone_C; // @TODO: noise
+    // FROM https://github.com/mamedev/mame/blob/master/src/devices/sound/ay8910.cpp ay8910_device::sound_stream_update
+    // The 8910 has three outputs, each output is the mix of one of the three
+    // tone generators and of the (single) noise generator. The two are mixed
+    // BEFORE going into the DAC. The formula to mix each channel is:
+    // (ToneOn | ToneDisable) & (NoiseOn | NoiseDisable).
+    // Note that this means that if both tone and noise are disabled, the output
+    // is 1, not 0, and can be modulated changing the volume.
+    wire channel_A = (tone_disable_A | tone_A) & (noise_disable_A | noise);
+    wire channel_B = (tone_disable_B | tone_B) & (noise_disable_B | noise);
+    wire channel_C = (tone_disable_C | tone_C) & (noise_disable_C | noise);
 
     wire [3:0] envelope = 15; // NOTE: Y2149 envelope outputs 5 bits, but amplitude is only 4 bits!
 
     wire [CHANNEL_OUTPUT_BITS-1:0] volume_A, volume_B, volume_C;
-
     attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_A (
         .in(channel_A),
         .control(envelope_A ? envelope: amplitude_A),
@@ -154,15 +159,14 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(volume_C)
         );
 
-
     reg [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
 
     // just for testing
     assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
                             (&noise_period) |
                             //(&mixer_control) |
-                            (&{tone_enable_A, tone_enable_B, tone_enable_C,
-                            noise_enable_A, noise_enable_B, noise_enable_C}) |
+                            (&{tone_disable_A, tone_disable_B, tone_disable_C,
+                            noise_disable_A, noise_disable_B, noise_disable_C}) |
                             envelope_A | (&amplitude_A) |
                             envelope_B | (&amplitude_B) |
                             envelope_C | (&amplitude_C) |
