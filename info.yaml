@@ -58,7 +58,7 @@ documentation:
     - digita audio most significant bit
 # A description of what the bidirectional I/O pins do (e.g. I2C SDA, I2C SCL, etc)
   bidirectional:
-    - A8 - register latch
+    - BDIR - bus direction
     - BC1 - bus control
     - none
     - none

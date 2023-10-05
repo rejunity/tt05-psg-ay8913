@@ -1,12 +1,13 @@
 /* verilator lint_off WIDTH */
 `default_nettype none
 
-module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 1,
-                                 parameter ATTENUATION_CONTROL_BITS = 4,
-                                 parameter FREQUENCY_COUNTER_BITS = 10, 
-                                 parameter NOISE_CONTROL_BITS = 3,
-                                 parameter CHANNEL_OUTPUT_BITS = 8,
-                                 parameter MASTER_OUTPUT_BITS = 7
+module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
+                                parameter NUM_TONES = 3, parameter NUM_NOISES = 1,
+                                parameter ATTENUATION_CONTROL_BITS = 4,
+                                parameter FREQUENCY_COUNTER_BITS = 10, 
+                                parameter NOISE_CONTROL_BITS = 3,
+                                parameter CHANNEL_OUTPUT_BITS = 8,
+                                parameter MASTER_OUTPUT_BITS = 7
 ) (
     input  wire [7:0] ui_in,    // Dedicated inputs - connected to the input switches
     output wire [7:0] uo_out,   // Dedicated outputs - connected to the 7 segment display
@@ -17,147 +18,35 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-    assign uio_oe[7:0] = {8{1'b1}}; // Bidirectional path set to output
+    assign uio_oe[7:0] = 8'b1111_1100; // Bidirectional path set to output, except the first BDIR pin and second BC1 pin
     assign uio_out[7:0] = {8{1'b0}};
     wire reset = ! rst_n;
 
-    wire [7:0] data;
-    assign data = ui_in;
+    wire [7:0] data = ui_in;
+
+    // AY-3-8193 Bus Control Decode
+    // NOTE: AY-3-819x has BC2 line to match design of CP1610 CPU, but in AY-3-8193 BC2 is always pulled high
+    // BDIR  BC1
+    //   0    0    Inactive
+    //   0    1    Read from Register Array  (NOT IMPLEMENTED!)
+    //   1    0    Write to Register Array
+    //   1    1    Latch Register Address
+    
+    wire bdir = uio_in[0];
+    wire bc1 = uio_in[1];
+    wire latch = bdir & bc1 & (data[7:4] == DA7_DA4_UPPER_ADDRESS_MASK);
+
 
     reg [3:0] latched_register;
-    reg latch;
-
-
-    // experiment B
-    // 24.18%   9132um
-    // Fill    decap fill  1293
-    // Tap tapvpwrvgnd 246
-    // Misc    dlymetal6s2s dlygate4sd3 conb   94
-    // OR  or3 or4 or2 89
-    // Flip Flops  dfxtp   87
-    // Combo Logic a31o a311o a41o o211a or2b or3b and2b   82
-    // Buffer  buf clkbuf  54
-    // AND and4 and3 and2  37
-    // Multiplexer mux2    16
-    // NOR nor2    11
-    // NAND    nand2   2
-    // 472 total cells (excluding fill and tap cells)
-
-    // // 12 * 3 + 5 + 6 + 3 + 3*4 + 16 + 4 = 82 
-    // reg [11:0]  tone_period_A, tone_period_B, tone_period_C;
-    // reg [4:0]   noise_period;
-    // // reg [5:0]   mixer_control;
-    // reg         tone_enable_A, tone_enable_B, tone_enable_C;
-    // reg         noise_enable_A, noise_enable_B, noise_enable_C;
-    // reg         mute_A, mute_B, mute_C;
-    // reg [3:0]   amplitude_A, amplitude_B, amplitude_C;
-    // reg [15:0]  envelope_period;
-    // // reg [3:0]  envelope_shape;
-    // reg         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
-
-    // always @(posedge clk) begin
-    //     if (reset) begin
-    //         latched_register <= 0;
-    //         latch <= 0;
-
-    //         tone_period_A               <= 0;
-    //         tone_period_B               <= 0;
-    //         tone_period_C               <= 0;
-    //         noise_period                <= 0;
-    //         {tone_enable_A,
-    //          tone_enable_B,
-    //          tone_enable_C,
-    //          noise_enable_A,
-    //          noise_enable_B,
-    //          noise_enable_C}            <= 0;
-    //         {mute_A, amplitude_A}       <= 0;
-    //         {mute_B, amplitude_B}       <= 0;
-    //         {mute_C, amplitude_C}       <= 0;
-    //         envelope_period[7:0]        <= 0;
-    //         envelope_period[15:8]       <= 0;
-    //         // envelope_shape              <= 0;
-    //         {envelope_continue,
-    //          envelope_attack,
-    //          envelope_alternate,
-    //          envelope_hold}             <= 0;
-    //     end else begin
-    //         latch <= ! latch;
-    //         if (latch)
-    //             latched_register <= data[3:0];
-    //         else begin
-    //             case(latched_register)
-    //                 0: tone_period_A[7:0]       <= data;
-    //                 1: tone_period_A[11:8]      <= data[3:0];
-    //                 2: tone_period_B[7:0]       <= data;
-    //                 3: tone_period_B[11:8]      <= data[3:0];
-    //                 4: tone_period_C[7:0]       <= data;
-    //                 5: tone_period_C[11:8]      <= data[3:0];
-    //                 6: noise_period             <= data[4:0];
-    //                 7: {tone_enable_A,
-    //                     tone_enable_B,
-    //                     tone_enable_C,
-    //                     noise_enable_A,
-    //                     noise_enable_B,
-    //                     noise_enable_C}         <= data[5:0];
-    //                 // 7: mixer_control            <= data[5:0];
-    //                 8: {mute_A, amplitude_A}    <= data[4:0];
-    //                 9: {mute_B, amplitude_B}    <= data[4:0];
-    //                 10:{mute_C, amplitude_C}    <= data[4:0];
-    //                 11:envelope_period[7:0]     <= data;
-    //                 12:envelope_period[15:8]    <= data;
-    //                 // 13:envelope_shape           <= data[3:0];
-    //                 13:{envelope_continue,
-    //                     envelope_attack,
-    //                     envelope_alternate,
-    //                     envelope_hold}          <= data[3:0];
-    //                 // default:
-    //             endcase
-    //         end
-    //     end
-    // end
-
-    // assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
-    //                         (&noise_period) |
-    //                         //(&mixer_control) |
-    //                         (&{tone_enable_A, tone_enable_B, tone_enable_C,
-    //                         noise_enable_A, noise_enable_B, noise_enable_C}) |
-    //                         mute_A | (&amplitude_A) |
-    //                         mute_B | (&amplitude_B) |
-    //                         mute_C | (&amplitude_C) |
-    //                         (&envelope_period) |
-    //                         // (&envelope_shape);
-    //                         (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
-
-
-
-    // experiment A
-    // 22.4%    7855um
-    // Fill    decap fill  1319
-    // Tap tapvpwrvgnd 246  
-    // Flip Flops  dfxtp   87
-    // Combo Logic a32o a31o a22o a311o a41o and2b or3b o21a and3b or2b nor3b nand3b nand4b and4bb 81
-    // Misc    dlygate4sd3 conb    79
-    // Buffer  buf clkbuf  62
-    // AND and3 and4 and2  50
-    // Multiplexer mux2    29
-    // NOR nor2    8
-    // OR  or4 or2 4
-    // NAND    nand2b nand2    2
-    // 402 total cells (excluding fill and tap cells)
-
     reg [7:0] register[15:0]; // used 82 bits out of 128 
 
     always @(posedge clk) begin
         if (reset) begin
             latched_register <= 0;
-            latch <= 0;
-
             for (integer i = 0; i < 16; i = i + 1) begin
                 register[i] <= 0;
             end
-
         end else begin
-            latch <= ! latch;
             if (latch)
                 latched_register <= data[3:0];
             else
@@ -186,7 +75,7 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
     wire [4:0]   noise_period;
     wire         tone_enable_A, tone_enable_B, tone_enable_C;
     wire         noise_enable_A, noise_enable_B, noise_enable_C;
-    wire         mute_A, mute_B, mute_C;
+    wire         envelope_A, envelope_B, envelope_C;
     wire [3:0]   amplitude_A, amplitude_B, amplitude_C;
     wire [15:0]  envelope_period;
     wire         envelope_continue, envelope_attack, envelope_alternate, envelope_hold;
@@ -201,23 +90,82 @@ module tt_um_rejunity_ay8913 #( parameter NUM_TONES = 3, parameter NUM_NOISES = 
             tone_enable_C,
             tone_enable_B,
             tone_enable_A} = ! register[7][5:0];
-    assign {mute_A, amplitude_A[3:0]} = register[ 8][4:0];
-    assign {mute_B, amplitude_B[3:0]} = register[ 9][4:0];
-    assign {mute_C, amplitude_C[3:0]} = register[10][4:0];
+    assign {envelope_A, amplitude_A[3:0]} = register[ 8][4:0];
+    assign {envelope_B, amplitude_B[3:0]} = register[ 9][4:0];
+    assign {envelope_C, amplitude_C[3:0]} = register[10][4:0];
     assign envelope_period[15:0] = {register[12][7:0], register[11][7:0]};
     assign {envelope_continue,
             envelope_attack,
             envelope_alternate,
             envelope_hold} = register[13][3:0];
 
+
+
+    wire tone_A, tone_B, tone_C, noise;
+    tone #(.COUNTER_BITS(12)) tone_A_generator (
+        .clk(clk),
+        .reset(reset),
+        .compare(tone_period_A),
+        .out(tone_A)
+        );
+    tone #(.COUNTER_BITS(12)) tone_B_generator (
+        .clk(clk),
+        .reset(reset),
+        .compare(tone_period_B),
+        .out(tone_B)
+        );
+    tone #(.COUNTER_BITS(12)) tone_C_generator (
+        .clk(clk),
+        .reset(reset),
+        .compare(tone_period_C),
+        .out(tone_C)
+        );
+
+    noise #(.COUNTER_BITS(5)) noise_generator (
+        .clk(clk),
+        .reset(reset),
+        .restart_noise(0),          // @TODO
+        .control(noise_period),
+        .tone_freq(0),              // @TODO
+        .out(noise)
+        );
+
+    wire channel_A = tone_enable_A & tone_A; // @TODO: noise
+    wire channel_B = tone_enable_B & tone_B; // @TODO: noise
+    wire channel_C = tone_enable_C & tone_C; // @TODO: noise
+
+    wire [3:0] envelope = 15; // NOTE: Y2149 envelope outputs 5 bits, but amplitude is only 4 bits!
+
+    wire [CHANNEL_OUTPUT_BITS-1:0] volume_A, volume_B, volume_C;
+
+    attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_A (
+        .in(channel_A),
+        .control(envelope_A ? envelope: amplitude_A),
+        .out(volume_A)
+        );
+    attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_B (
+        .in(channel_B),
+        .control(envelope_B ? envelope: amplitude_B),
+        .out(volume_B)
+        );
+    attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_C (
+        .in(channel_C),
+        .control(envelope_C ? envelope: amplitude_C),
+        .out(volume_C)
+        );
+
+
+    reg [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
+
+    // just for testing
     assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
                             (&noise_period) |
                             //(&mixer_control) |
                             (&{tone_enable_A, tone_enable_B, tone_enable_C,
                             noise_enable_A, noise_enable_B, noise_enable_C}) |
-                            mute_A | (&amplitude_A) |
-                            mute_B | (&amplitude_B) |
-                            mute_C | (&amplitude_C) |
+                            envelope_A | (&amplitude_A) |
+                            envelope_B | (&amplitude_B) |
+                            envelope_C | (&amplitude_C) |
                             (&envelope_period) |
                             // (&envelope_shape);
                             (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
