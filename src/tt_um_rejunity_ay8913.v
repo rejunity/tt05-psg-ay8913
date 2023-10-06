@@ -123,9 +123,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     noise #(.COUNTER_BITS(5)) noise_generator (
         .clk(clk),
         .reset(reset),
-        .restart_noise(0),          // @TODO
-        .control(noise_period),
-        .tone_freq(0),              // @TODO
+        .period(noise_period),
         .out(noise)
         );
 
