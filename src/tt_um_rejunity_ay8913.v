@@ -104,19 +104,19 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     tone #(.COUNTER_BITS(12)) tone_A_generator (
         .clk(clk),
         .reset(reset),
-        .compare(tone_period_A),
+        .period(tone_period_A),
         .out(tone_A)
         );
     tone #(.COUNTER_BITS(12)) tone_B_generator (
         .clk(clk),
         .reset(reset),
-        .compare(tone_period_B),
+        .period(tone_period_B),
         .out(tone_B)
         );
     tone #(.COUNTER_BITS(12)) tone_C_generator (
         .clk(clk),
         .reset(reset),
-        .compare(tone_period_C),
+        .period(tone_period_C),
         .out(tone_C)
         );
 
@@ -236,19 +236,19 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     // // tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) tone0 (
     // //     .clk(clk),
     // //     .reset(reset),
-    // //     .compare(control_tone_freq[0]),
+    // //     .period(control_tone_freq[0]),
     // //     .out(channels[0]));
 
     // // tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) tone1 (
     // //     .clk(clk),
     // //     .reset(reset),
-    // //     .compare(control_tone_freq[1]),
+    // //     .period(control_tone_freq[1]),
     // //     .out(channels[1]));
 
     // // tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) tone2 (
     // //     .clk(clk),
     // //     .reset(reset),
-    // //     .compare(control_tone_freq[2]),
+    // //     .period(control_tone_freq[2]),
     // //     .out(channels[2]));
 
     // genvar i;
@@ -257,7 +257,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     //         tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) gen (
     //             .clk(clk),
     //             .reset(reset),
-    //             .compare(control_tone_freq[i]),
+    //             .period(control_tone_freq[i]),
     //             .out(channels[i])
     //             );
     //     end
@@ -276,7 +276,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     //         //     .clk(clk),
     //         //     .reset(reset),
     //         //     .reset_lfsr(restart_noise),
-    //         //     .compare(noise_freq),
+    //         //     .period(noise_freq),
     //         //     .is_white_noise(noise_type),
     //         //     .out(channels[NUM_TONES+i])
     //         //     );

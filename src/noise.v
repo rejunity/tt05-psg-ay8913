@@ -60,7 +60,7 @@
 //     else
 //         m_rng = (m_rng >> 1) | ((BIT(m_rng, 0) ^ BIT(m_rng, 3)) << 16);
 // }
-    
+
 module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 1, parameter COUNTER_BITS = 5 ) (
     input  wire clk,
     input  wire reset,
