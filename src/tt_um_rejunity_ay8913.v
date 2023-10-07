@@ -140,7 +140,17 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire channel_B = (tone_disable_B | tone_B) & (noise_disable_B | noise);
     wire channel_C = (tone_disable_C | tone_C) & (noise_disable_C | noise);
 
-    wire [3:0] envelope = 15; // NOTE: Y2149 envelope outputs 5 bits, but programmable amplitude is only 4 bits!
+    wire [3:0] envelope; // NOTE: Y2149 envelope outputs 5 bits, but programmable amplitude is only 4 bits!
+    envelope #(.PERIOD_BITS(16), .ENVELOPE_BITS(4)) envelope_generator (
+        .clk(clk), // @TODO: clk256
+        .reset(reset), // @TODO: reset on register write
+        .continue_(envelope_continue),
+        .attack(envelope_attack),
+        .alternate(envelope_alternate),
+        .hold(envelope_hold),
+        .period(envelope_period),
+        .out(envelope)
+        );
 
     wire [CHANNEL_OUTPUT_BITS-1:0] volume_A, volume_B, volume_C;
     attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_A (
