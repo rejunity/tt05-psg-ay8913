@@ -35,6 +35,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire bdir = uio_in[0];
     wire bc1 = uio_in[1];
     wire latch = bdir & bc1 & (data[7:4] == DA7_DA4_UPPER_ADDRESS_MASK);
+                                            // PSG_CS, PSG_SEL/INTERNAL_SEL DA_LATCH_WR, REG_WR from lvd reverse eng
 
 
     reg [3:0] latched_register;
@@ -50,7 +51,8 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             if (latch)
                 latched_register <= data[3:0];
             else
-                register[latched_register] <= data;
+                register[latched_register] <= data; // @TODO: prevent writes, if DA7_DA4_UPPER_ADDRESS_MASK wasn't matched
+                                                    // @TODO: envelope restart, when R13 is written to
         end
     end
 
@@ -138,7 +140,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire channel_B = (tone_disable_B | tone_B) & (noise_disable_B | noise);
     wire channel_C = (tone_disable_C | tone_C) & (noise_disable_C | noise);
 
-    wire [3:0] envelope = 15; // NOTE: Y2149 envelope outputs 5 bits, but amplitude is only 4 bits!
+    wire [3:0] envelope = 15; // NOTE: Y2149 envelope outputs 5 bits, but programmable amplitude is only 4 bits!
 
     wire [CHANNEL_OUTPUT_BITS-1:0] volume_A, volume_B, volume_C;
     attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_A (
@@ -157,10 +159,11 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(volume_C)
         );
 
-    reg [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
+    wire [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
 
     // just for testing
-    assign uo_out[7:0] =    (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
+    assign uo_out[7:0] =    master +
+                            (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
                             (&noise_period) |
                             (&{tone_disable_A, tone_disable_B, tone_disable_C,
                             noise_disable_A, noise_disable_B, noise_disable_C}) |
