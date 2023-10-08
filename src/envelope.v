@@ -65,7 +65,7 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     wire attack__   =   attack_;
 
     wire advance_envelope;
-    tone #(.COUNTER_BITS(PERIOD_BITS)) tone (
+    tone #(.PERIOD_BITS(PERIOD_BITS)) tone (
         .clk(clk),
         .reset(reset),
         .period(period),

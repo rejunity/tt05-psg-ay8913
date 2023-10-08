@@ -16,15 +16,15 @@
 //  lfsr = 1
 //  for x in range(65535*16): lfsr = lfsr >> 1 | (((lfsr&1) ^ ((lfsr>>3)&1))<<16); print (lfsr,x) if lfsr <= 1 else None 
 
-module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, parameter COUNTER_BITS = 5 ) (
+module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, parameter PERIOD_BITS = 5 ) (
     input  wire clk,
     input  wire reset,
-    input  wire [COUNTER_BITS-1:0] period,
+    input  wire [PERIOD_BITS-1:0] period,
 
     output wire  out
 );
     wire lfsr_shift_trigger;
-    tone #(.COUNTER_BITS(COUNTER_BITS)) tone (
+    tone #(.PERIOD_BITS(PERIOD_BITS)) tone (
         .clk(clk),
         .reset(reset),
         .period(period),

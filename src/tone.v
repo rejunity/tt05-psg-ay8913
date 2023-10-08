@@ -26,15 +26,15 @@
 //       has an immediate effect,       has an immediate effect,
 //     shortening the current wave!   prolonging the current wave!
 
-module tone #( parameter COUNTER_BITS = 12 ) (
+module tone #( parameter PERIOD_BITS = 12 ) (
     input  wire clk,
     input  wire reset,
 
-    input  wire [COUNTER_BITS-1:0]  period,
+    input  wire [PERIOD_BITS-1:0]  period,
 
     output wire out
 );
-    reg [COUNTER_BITS-1:0] counter;
+    reg [PERIOD_BITS-1:0] counter;
     reg state;
 
     always @(posedge clk) begin

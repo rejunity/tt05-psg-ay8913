@@ -2,10 +2,6 @@
 `default_nettype none
 
 module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
-                                parameter NUM_TONES = 3, parameter NUM_NOISES = 1,
-                                parameter ATTENUATION_CONTROL_BITS = 4,
-                                parameter FREQUENCY_COUNTER_BITS = 10, 
-                                parameter NOISE_CONTROL_BITS = 3,
                                 parameter CHANNEL_OUTPUT_BITS = 8,
                                 parameter MASTER_OUTPUT_BITS = 7
 ) (
@@ -18,14 +14,17 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-    assign uio_oe[7:0] = 8'b1111_1100; // Bidirectional path set to output, except the first BDIR pin and second BC1 pin
     assign uio_out[7:0] = {8{1'b0}};
+    assign uio_oe[7:0] = 8'b1111_1100;  // the first 2 pins of the Bidirectional path are used for
+                                        // bus control lines (BDIR and BC1) are set to input mode (=0),
+                                        // the rest of the pins are set to output mode (=1)
     wire reset = ! rst_n;
 
     wire [7:0] data = ui_in;
 
     // AY-3-819x Bus Control Decode
-    // NOTE: AY-3-819x has BC2 line to match design of CP1610 CPU, but in AY-3-8193 BC2 is always pulled high
+    // NOTE: AY-3-819x to match design of CP1610 CPU has one more bus control line BC2
+    // however in AY-3-8193 BC2 is left internal and is always pulled high to simplify the bus control logic.
     // BDIR  BC1
     //   0    0    Inactive
     //   0    1    Read from Register Array  (NOT IMPLEMENTED!)
@@ -38,26 +37,28 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire bus_write      =  bdir && !bc1;
     wire bus_latch_reg  =  bdir &&  bc1;
 
-    wire cs = (data[7:4] == DA7_DA4_UPPER_ADDRESS_MASK);// NOTE: A8 and A9 are NOT IMPLEMENTED!
+    // NOT IMPLEMENTED! A8 and A9 address lines
+    wire cs = (data[7:4] == DA7_DA4_UPPER_ADDRESS_MASK);
     wire latch = bus_latch_reg && cs;
-    wire write = bus_write && active;                   // NOTE: chip must be in active state
-                                                        // in order to accept writes to the register file 
+    wire write = bus_write && active;   // NOTE: chip must be in active state
+                                        // in order to accept writes to the register file 
 
     reg [8:0] clk_counter;
-    wire clk_16  = clk_counter[4];  // master clock divided by  16 for tunes and noise
-    wire clk_256 = clk_counter[8];  // master clock divided by 256 for envelope
+    wire clk_16  = clk_counter[4];      // master clock divided by  16 for tunes and noise
+    wire clk_256 = clk_counter[8];      // master clock divided by 256 for envelope
 
+    localparam REGISTERS = 16;
     reg [3:0] latched_register;
-    reg [7:0] register[15:0];       // 82 bits are used out of 128
-    reg active;                     // chip becomes active during the Latch Register Address phase
-                                    // IFF cs==1 ({A9,A8,DA7..DA4} matches the chip mask)
+    reg [7:0] register[REGISTERS-1:0];  // 82 bits are used out of 128
+    reg active;                         // chip becomes active during the Latch Register Address phase
+                                        // IFF cs==1 ({A9,A8,DA7..DA4} matches the chip mask)
     reg restart_envelope;
 
     always @(posedge clk) begin
         if (reset) begin
             clk_counter <= 0;
             latched_register <= 0;
-            for (integer i = 0; i < 16; i = i + 1)
+            for (integer i = 0; i < REGISTERS; i = i + 1)
                 register[i] <= 0;
             active <= 0;
             restart_envelope <= 0;
@@ -126,26 +127,26 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
 
     // Tone, noise & envelope generators
     wire tone_A, tone_B, tone_C, noise;
-    tone #(.COUNTER_BITS(12)) tone_A_generator (
+    tone #(.PERIOD_BITS(12)) tone_A_generator (
         .clk(clk_16),
         .reset(reset),
         .period(tone_period_A),
         .out(tone_A)
         );
-    tone #(.COUNTER_BITS(12)) tone_B_generator (
+    tone #(.PERIOD_BITS(12)) tone_B_generator (
         .clk(clk_16),
         .reset(reset),
         .period(tone_period_B),
         .out(tone_B)
         );
-    tone #(.COUNTER_BITS(12)) tone_C_generator (
+    tone #(.PERIOD_BITS(12)) tone_C_generator (
         .clk(clk_16),
         .reset(reset),
         .period(tone_period_C),
         .out(tone_C)
         );
 
-    noise #(.COUNTER_BITS(5)) noise_generator (
+    noise #(.PERIOD_BITS(5)) noise_generator (
         .clk(clk_16),
         .reset(reset),
         .period(noise_period),
@@ -193,8 +194,6 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         );
 
     wire [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
-
-    
     assign uo_out[7:0] = master;
 
     // // sum up all the channels, clamp to the highest value when overflown
