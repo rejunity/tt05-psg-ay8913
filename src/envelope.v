@@ -74,7 +74,7 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     reg invert_output;
     reg stop;
     reg [ENVELOPE_BITS-1:0] envelope_counter;
-    always @(posedge advance_envelope) begin
+    always @(posedge advance_envelope or posedge reset) begin
         if (reset) begin
             stop <= 0;
             envelope_counter <= 0;
