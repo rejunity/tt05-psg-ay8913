@@ -31,28 +31,51 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     //   0    1    Read from Register Array  (NOT IMPLEMENTED!)
     //   1    0    Write to Register Array
     //   1    1    Latch Register Address
-    
     wire bdir = uio_in[0];
     wire bc1 = uio_in[1];
-    wire latch = bdir & bc1 & (data[7:4] == DA7_DA4_UPPER_ADDRESS_MASK);
-                                            // PSG_CS, PSG_SEL/INTERNAL_SEL DA_LATCH_WR, REG_WR from lvd reverse eng
+    wire bus_inactive   = !bdir && !bc1;
+    wire bus_read       = !bdir &&  bc1;
+    wire bus_write      =  bdir && !bc1;
+    wire bus_latch_reg  =  bdir &&  bc1;
 
+    wire cs = (data[7:4] == DA7_DA4_UPPER_ADDRESS_MASK);// NOTE: A8 and A9 are NOT IMPLEMENTED!
+    wire latch = bus_latch_reg && cs;
+    wire write = bus_write && active;                   // NOTE: chip must be in active state
+                                                        // in order to accept writes to the register file 
+
+    reg [8:0] clk_counter;
+    wire clk_16  = clk_counter[4];  // master clock divided by  16 for tunes and noise
+    wire clk_256 = clk_counter[8];  // master clock divided by 256 for envelope
 
     reg [3:0] latched_register;
-    reg [7:0] register[15:0]; // used 82 bits out of 128 
+    reg [7:0] register[15:0];       // 82 bits are used out of 128
+    reg active;                     // chip becomes active during the Latch Register Address phase
+                                    // IFF cs==1 ({A9,A8,DA7..DA4} matches the chip mask)
+    reg restart_envelope;
 
     always @(posedge clk) begin
         if (reset) begin
+            clk_counter <= 0;
             latched_register <= 0;
             for (integer i = 0; i < 16; i = i + 1) begin
                 register[i] <= 0;
+            active <= 0;
+            restart_envelope <= 0;
             end
         end else begin
+            clk_counter <= clk_counter + 1;                 // provides clk_16 and clk_256 dividers
+
+            if (bus_latch_reg)                              // chip becomes active for subsequent reads/writes
+                active <= cs;                               // IFF cs==1, during the Latch Register Address phase
+                                                            // otherwise future data reads/writes will be ignored
+
             if (latch)
                 latched_register <= data[3:0];
-            else
-                register[latched_register] <= data; // @TODO: prevent writes, if DA7_DA4_UPPER_ADDRESS_MASK wasn't matched
-                                                    // @TODO: envelope restart, when R13 is written to
+            else if (write)
+                register[latched_register] <= data;
+
+            restart_envelope <= write &&                    // restart envelope
+                                latched_register == 4'd13;  // when data is written to R13 Envelope Shape register
         end
     end
 
@@ -104,26 +127,26 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
 
     wire tone_A, tone_B, tone_C, noise;
     tone #(.COUNTER_BITS(12)) tone_A_generator (
-        .clk(clk),
+        .clk(clk_16),
         .reset(reset),
         .period(tone_period_A),
         .out(tone_A)
         );
     tone #(.COUNTER_BITS(12)) tone_B_generator (
-        .clk(clk),
+        .clk(clk_16),
         .reset(reset),
         .period(tone_period_B),
         .out(tone_B)
         );
     tone #(.COUNTER_BITS(12)) tone_C_generator (
-        .clk(clk),
+        .clk(clk_16),
         .reset(reset),
         .period(tone_period_C),
         .out(tone_C)
         );
 
     noise #(.COUNTER_BITS(5)) noise_generator (
-        .clk(clk),
+        .clk(clk_16),
         .reset(reset),
         .period(noise_period),
         .out(noise)
@@ -142,8 +165,8 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
 
     wire [3:0] envelope; // NOTE: Y2149 envelope outputs 5 bits, but programmable amplitude is only 4 bits!
     envelope #(.PERIOD_BITS(16), .ENVELOPE_BITS(4)) envelope_generator (
-        .clk(clk), // @TODO: clk256
-        .reset(reset), // @TODO: reset on register write
+        .clk(clk_256),
+        .reset(reset | restart_envelope),
         .continue_(envelope_continue),
         .attack(envelope_attack),
         .alternate(envelope_alternate),
