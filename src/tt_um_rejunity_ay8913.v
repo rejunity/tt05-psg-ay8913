@@ -24,7 +24,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
 
     wire [7:0] data = ui_in;
 
-    // AY-3-8193 Bus Control Decode
+    // AY-3-819x Bus Control Decode
     // NOTE: AY-3-819x has BC2 line to match design of CP1610 CPU, but in AY-3-8193 BC2 is always pulled high
     // BDIR  BC1
     //   0    0    Inactive
@@ -79,7 +79,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         end
     end
 
-    // PSG Register Array
+    // AY-3-819x Register Array
     //     7 6 5 4 3 2 1 0
     // R0  x x x x x x x x Channel A Tone Period, Fine Tune
     // R1          x x x x                        Coarse Tune
@@ -125,6 +125,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             envelope_hold} = register[13][3:0];
 
 
+    // Tone, noise & envelope generators
     wire tone_A, tone_B, tone_C, noise;
     tone #(.COUNTER_BITS(12)) tone_A_generator (
         .clk(clk_16),
@@ -152,17 +153,6 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(noise)
         );
 
-    // FROM https://github.com/mamedev/mame/blob/master/src/devices/sound/ay8910.cpp ay8910_device::sound_stream_update
-    // The 8910 has three outputs, each output is the mix of one of the three
-    // tone generators and of the (single) noise generator. The two are mixed
-    // BEFORE going into the DAC. The formula to mix each channel is:
-    // (ToneOn | ToneDisable) & (NoiseOn | NoiseDisable).
-    // Note that this means that if both tone and noise are disabled, the output
-    // is 1, not 0, and can be modulated changing the volume.
-    wire channel_A = (tone_disable_A | tone_A) & (noise_disable_A | noise);
-    wire channel_B = (tone_disable_B | tone_B) & (noise_disable_B | noise);
-    wire channel_C = (tone_disable_C | tone_C) & (noise_disable_C | noise);
-
     wire [3:0] envelope; // NOTE: Y2149 envelope outputs 5 bits, but programmable amplitude is only 4 bits!
     envelope #(.PERIOD_BITS(16), .ENVELOPE_BITS(4)) envelope_generator (
         .clk(clk_256),
@@ -174,6 +164,17 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .period(envelope_period),
         .out(envelope)
         );
+
+    // FROM https://github.com/mamedev/mame/blob/master/src/devices/sound/ay8910.cpp ay8910_device::sound_stream_update
+    // The 8910 has three outputs, each output is the mix of one of the three
+    // tone generators and of the (single) noise generator. The two are mixed
+    // BEFORE going into the DAC. The formula to mix each channel is:
+    // (ToneOn | ToneDisable) & (NoiseOn | NoiseDisable).
+    // Note that this means that if both tone and noise are disabled, the output
+    // is 1, not 0, and can be modulated changing the volume.
+    wire channel_A = (tone_disable_A | tone_A) & (noise_disable_A | noise);
+    wire channel_B = (tone_disable_B | tone_B) & (noise_disable_B | noise);
+    wire channel_C = (tone_disable_C | tone_C) & (noise_disable_C | noise);
 
     wire [CHANNEL_OUTPUT_BITS-1:0] volume_A, volume_B, volume_C;
     attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_A (
@@ -205,135 +206,6 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
                             envelope_C | (&amplitude_C) |
                             (&envelope_period) |
                             (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
-
-    // // The SN76489 has 8 control "registers":
-    // // - 4 x 4 bit volume registers (attenuation)
-    // // - 3 x 10 bit tone registers  (frequency)
-    // // - 1 x 3 bit noise register
-    // localparam NUM_CHANNELS = NUM_TONES + NUM_NOISES;    
-    // reg [ATTENUATION_CONTROL_BITS-1:0]  control_attn[NUM_CHANNELS-1:0];
-    // reg [FREQUENCY_COUNTER_BITS-1:0]    control_tone_freq[NUM_TONES-1:0];
-    // reg [NOISE_CONTROL_BITS-1:0]        control_noise[NUM_NOISES-1:0];
-    // reg [2:0] latch_control_reg;
-    // reg restart_noise;
-
-    // always @(posedge clk) begin
-    //     if (reset) begin
-    //         control_attn[0] <= 4'b1111;
-    //         control_attn[1] <= 4'b1111;
-    //         control_attn[2] <= 4'b1111;
-    //         control_attn[3] <= 4'b1111;
-    //         control_tone_freq[0] <= 0;
-    //         control_tone_freq[1] <= 0;
-    //         control_tone_freq[2] <= 0;
-    //         control_noise[0] <= 3'b100;
-
-    //         latch_control_reg <= 0;
-    //         restart_noise <= 0;
-    //     end else begin
-    //         restart_noise <= 0;
-    //         if (data[7] == 1'b1) begin
-    //             case(data[6:4])
-    //                 3'b000 : control_tone_freq[0][3:0] <= data[3:0];
-    //                 3'b010 : control_tone_freq[1][3:0] <= data[3:0];
-    //                 3'b100 : control_tone_freq[2][3:0] <= data[3:0];
-    //                 3'b110 : 
-    //                     begin 
-    //                         control_noise[0] <= data[2:0];
-    //                         restart_noise <= 1;
-    //                     end
-    //                 3'b001 : control_attn[0] <= data[3:0];
-    //                 3'b011 : control_attn[1] <= data[3:0];
-    //                 3'b101 : control_attn[2] <= data[3:0];
-    //                 3'b111 : control_attn[3] <= data[3:0];
-    //                 default : begin end
-    //             endcase
-    //             latch_control_reg <= data[6:4];
-    //         end else begin
-    //             case(latch_control_reg)
-    //                 3'b000 : control_tone_freq[0][9:4] <= data[5:0];
-    //                 3'b010 : control_tone_freq[1][9:4] <= data[5:0];
-    //                 3'b100 : control_tone_freq[2][9:4] <= data[5:0];
-    //                 3'b001 : control_attn[0] <= data[3:0];
-    //                 3'b011 : control_attn[1] <= data[3:0];
-    //                 3'b101 : control_attn[2] <= data[3:0];
-    //                 3'b111 : control_attn[3] <= data[3:0];
-    //                 default : begin end
-    //             endcase
-    //         end
-    //     end
-    // end
-
-    // wire                           channels [NUM_CHANNELS-1:0];
-    // wire [CHANNEL_OUTPUT_BITS-1:0] volumes  [NUM_CHANNELS-1:0];
-
-    // // tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) tone0 (
-    // //     .clk(clk),
-    // //     .reset(reset),
-    // //     .period(control_tone_freq[0]),
-    // //     .out(channels[0]));
-
-    // // tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) tone1 (
-    // //     .clk(clk),
-    // //     .reset(reset),
-    // //     .period(control_tone_freq[1]),
-    // //     .out(channels[1]));
-
-    // // tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) tone2 (
-    // //     .clk(clk),
-    // //     .reset(reset),
-    // //     .period(control_tone_freq[2]),
-    // //     .out(channels[2]));
-
-    // genvar i;
-    // generate
-    //     for (i = 0; i < NUM_TONES; i = i + 1) begin : tone
-    //         tone #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) gen (
-    //             .clk(clk),
-    //             .reset(reset),
-    //             .period(control_tone_freq[i]),
-    //             .out(channels[i])
-    //             );
-    //     end
-
-    //     for (i = 0; i < NUM_NOISES; i = i + 1) begin : noise
-    //         // wire noise_type;
-    //         // wire [FREQUENCY_COUNTER_BITS-1:0] noise_freq;
-    //         // noise_control_decoder #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) noise_control_decoder (
-    //         //     .control(control_noise[i]),
-    //         //     .tone_freq(control_tone_freq[NUM_TONES-1]), // last tone 
-    //         //     .noise_type(noise_type),
-    //         //     .noise_freq(noise_freq)
-    //         //     );
-
-    //         // noise #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) gen (
-    //         //     .clk(clk),
-    //         //     .reset(reset),
-    //         //     .reset_lfsr(restart_noise),
-    //         //     .period(noise_freq),
-    //         //     .is_white_noise(noise_type),
-    //         //     .out(channels[NUM_TONES+i])
-    //         //     );
-
-    //         noise #(.COUNTER_BITS(FREQUENCY_COUNTER_BITS)) gen (
-    //             .clk(clk),
-    //             .reset(reset),
-    //             .restart_noise(restart_noise),
-    //             .control(control_noise[i]),
-    //             .tone_freq(control_tone_freq[NUM_TONES-1]), // last tone frequency
-    //             .out(channels[NUM_TONES+i])
-    //             );
-    //     end
-
-    //     for (i = 0; i < NUM_CHANNELS; i = i + 1) begin : chan
-    //         attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation (
-    //             .in(channels[i]),
-    //             .control(control_attn[i]),
-    //             .out(volumes[i])
-    //             );
-    //     end
-    // endgenerate
-
 
     // // sum up all the channels, clamp to the highest value when overflown
     // localparam OVERFLOW_BITS = $clog2(NUM_CHANNELS);

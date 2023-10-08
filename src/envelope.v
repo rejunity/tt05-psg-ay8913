@@ -99,26 +99,4 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     assign out =
         invert_output ? MAX_VALUE - envelope_counter : envelope_counter;
 
-    // reg [PERIOD_BITS-1:0] period_counter;
-    // reg [ENVELOPE_BITS-1:0] cycle_counter;
-    // reg state;
-
-    // always @(posedge clk) begin
-    //     if (reset) begin
-    //         period_counter <= 1;
-    //         cycle_counter <= 0;
-    //         state <= 0;
-    //     end else begin
-    //         if (period_counter >= period) begin
-    //             period_counter <= 1;        // reset counter to 1 (to emulate AY counter increase preceding compare)
-    //                                         // Real AY-3-891x assign 0 on reset, but since it uses two-phase clock f1 and /f1
-    //                                         // (as far as I could understand from the reverse engineered behavior)
-    //                                         // AY increases the counter on f1 and compares to period on /f1.
-    //             cycle_counter <= 0;
-    //         end else
-    //             period_counter <= period_counter + 1'b1;
-    //     end
-    // end
-
-    // assign out = state;
 endmodule
