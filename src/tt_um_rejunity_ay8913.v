@@ -196,16 +196,16 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
 
     // just for testing
-    assign uo_out[7:0] =    master +
-                            (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
-                            (&noise_period) |
-                            (&{tone_disable_A, tone_disable_B, tone_disable_C,
-                            noise_disable_A, noise_disable_B, noise_disable_C}) |
-                            envelope_A | (&amplitude_A) |
-                            envelope_B | (&amplitude_B) |
-                            envelope_C | (&amplitude_C) |
-                            (&envelope_period) |
-                            (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
+    assign uo_out[7:0] = master;
+                            // (&tone_period_A) | (&tone_period_B) | (&tone_period_C) |
+                            // (&noise_period) |
+                            // (&{tone_disable_A, tone_disable_B, tone_disable_C,
+                            // noise_disable_A, noise_disable_B, noise_disable_C}) |
+                            // envelope_A | (&amplitude_A) |
+                            // envelope_B | (&amplitude_B) |
+                            // envelope_C | (&amplitude_C) |
+                            // (&envelope_period) |
+                            // (&{envelope_continue, envelope_attack, envelope_alternate, envelope_hold});
 
     // // sum up all the channels, clamp to the highest value when overflown
     // localparam OVERFLOW_BITS = $clog2(NUM_CHANNELS);
