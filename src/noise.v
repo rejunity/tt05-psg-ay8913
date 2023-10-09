@@ -14,7 +14,7 @@
 //  - the cycle is 131070 iterations before LFSR reaches 1 again
 //
 //  lfsr = 1
-//  for x in range(65535*16): lfsr = lfsr >> 1 | (((lfsr&1) ^ ((lfsr>>3)&1))<<16); print (lfsr,x) if lfsr <= 1 else None 
+//  for x in range(65535*16): lfsr = lfsr >> 1 | (((lfsr&1) ^ ((lfsr>>3)&1))<<16); print (lfsr,x) if lfsr <= 1 else None
 
 module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, parameter PERIOD_BITS = 5 ) (
     input  wire clk,
@@ -23,23 +23,53 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
 
     output wire  out
 );
-    wire lfsr_shift_trigger;
+    wire trigger;
     tone #(.PERIOD_BITS(PERIOD_BITS)) tone (
         .clk(clk),
         .reset(reset),
         .period(period),
-        .out(lfsr_shift_trigger));
+        .out(trigger));
+
+    wire trigger_posedge;
+    signal_edge trigger_edge(
+        .clk(clk),
+        .reset(reset),
+        .signal(trigger),
+        .on_posedge(trigger_posedge)
+    );
+
+    // reg previous_trigger;
+    // wire trigger_edge = (previous_trigger != trigger && trigger);
 
     reg [LFSR_BITS-1:0] lfsr;
     wire is_lfsr_zero = (lfsr == 0); // more readable, but equivalent to the hardware implementation ~(|lfsr)
     wire lfsr_shift_in = (lfsr[LFSR_TAP0] ^ lfsr[LFSR_TAP1]) | is_lfsr_zero;
-    
-    always @(posedge lfsr_shift_trigger) begin
-        if (reset)      // @TODO: reset should happen on the master clock
+
+    always @(posedge clk) begin
+        if (reset)
             lfsr <= 0;
         else
-            lfsr <= {lfsr_shift_in, lfsr[LFSR_BITS-1:1]};
+            if (trigger_posedge)
+                lfsr <= {lfsr_shift_in, lfsr[LFSR_BITS-1:1]};
     end
+
+    // always @(posedge clk) begin
+    //     if (reset) begin
+    //         lfsr <= 0;
+    //         previous_trigger <= 0;
+    //     end else begin
+    //         if (trigger_edge)
+    //             lfsr <= {lfsr_shift_in, lfsr[LFSR_BITS-1:1]};
+    //         previous_trigger <= trigger;
+    //     end
+    // end
+
+    // always @(posedge lfsr_shift_trigger) begin
+    //     if (reset)      // @TODO: reset should happen on the master clock
+    //         lfsr <= 0;
+    //     else
+    //         lfsr <= {lfsr_shift_in, lfsr[LFSR_BITS-1:1]};
+    // end
 
     assign out = ~lfsr[0];
 endmodule

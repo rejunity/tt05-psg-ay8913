@@ -64,36 +64,46 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     wire alternate__=   hold_ ? ~alternate_ : alternate_;
     wire attack__   =   attack_;
 
-    wire advance_envelope;
+    wire trigger;
     tone #(.PERIOD_BITS(PERIOD_BITS)) tone (
         .clk(clk),
         .reset(reset),
         .period(period),
-        .out(advance_envelope));
+        .out(trigger));
+
+    wire trigger_posedge;
+    signal_edge trigger_edge(
+        .clk(clk),
+        .reset(reset),
+        .signal(trigger),
+        .on_posedge(trigger_posedge)
+    );
 
     reg invert_output;
-    reg stop;
     reg [ENVELOPE_BITS-1:0] envelope_counter;
-    always @(posedge advance_envelope) begin
-        if (reset) begin // @TODO: reset should happen on the master clock
-            stop <= 0;
+    reg stop;
+    // always @(posedge advance_envelope) begin
+    always @(posedge clk) begin
+        if (reset) begin
             envelope_counter <= 0;
-            invert_output <= !attack__;
+            stop <= 0;
         end else begin
-            if (envelope_counter == MAX_VALUE) begin
-                // if (hold_)
-                //     invert_output <= attack_ ^ alternate_;
-                // else if (alternate_)
-                if (alternate__)
-                    invert_output <= ~invert_output;
-            end
-
-            if (!(hold__ && stop))
-                {stop, envelope_counter} <= envelope_counter + 1'b1;
-            // else
-            //     envelope_counter <= 0;
+            if (trigger_posedge)
+                if (!(hold__ && stop))
+                    {stop, envelope_counter} <= envelope_counter + 1'b1;
         end
     end
+
+    always @(posedge clk) begin
+        if (reset)
+            invert_output <= !attack__;
+        else begin
+            if (trigger_posedge && envelope_counter == MAX_VALUE)
+                if (alternate__)
+                    invert_output <= ~invert_output;
+        end
+    end
+
 
     localparam MAX_VALUE = {ENVELOPE_BITS{1'b1}};
     assign out =
