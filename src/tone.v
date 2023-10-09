@@ -37,7 +37,7 @@ module tone #( parameter PERIOD_BITS = 12 ) (
     reg [PERIOD_BITS-1:0] counter;
     reg state;
 
-    always @(posedge clk or posedge reset) begin
+    always @(posedge clk) begin
         if (reset) begin
             counter <= 1;
             state <= 0;

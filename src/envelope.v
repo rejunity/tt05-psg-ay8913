@@ -74,8 +74,8 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     reg invert_output;
     reg stop;
     reg [ENVELOPE_BITS-1:0] envelope_counter;
-    always @(posedge advance_envelope or posedge reset) begin
-        if (reset) begin
+    always @(posedge advance_envelope) begin
+        if (reset) begin // @TODO: reset should happen on the master clock
             stop <= 0;
             envelope_counter <= 0;
             invert_output <= !attack__;

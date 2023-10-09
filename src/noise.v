@@ -33,8 +33,9 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
     reg [LFSR_BITS-1:0] lfsr;
     wire is_lfsr_zero = (lfsr == 0); // more readable, but equivalent to the hardware implementation ~(|lfsr)
     wire lfsr_shift_in = (lfsr[LFSR_TAP0] ^ lfsr[LFSR_TAP1]) | is_lfsr_zero;
-    always @(posedge lfsr_shift_trigger or posedge reset) begin
-        if (reset)
+    
+    always @(posedge lfsr_shift_trigger) begin
+        if (reset)      // @TODO: reset should happen on the master clock
             lfsr <= 0;
         else
             lfsr <= {lfsr_shift_in, lfsr[LFSR_BITS-1:1]};

@@ -43,9 +43,9 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire write = bus_write && active;   // NOTE: chip must be in active state
                                         // in order to accept writes to the register file 
 
-    reg [8:0] clk_counter;
-    wire clk_16  = clk_counter[4];      // master clock divided by  16 for tunes and noise
-    wire clk_256 = clk_counter[8];      // master clock divided by 256 for envelope
+    reg [7:0] clk_counter;
+    wire clk_16  = reset == 0 ? clk_counter[3]: clk;      // master clock divided by  16 for tunes and noise
+    wire clk_256 = reset == 0 ? clk_counter[7]: clk;      // master clock divided by 256 for envelope
 
     localparam REGISTERS = 16;
     reg [3:0] latched_register;
