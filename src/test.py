@@ -15,10 +15,22 @@ def print_chip_state(dut):
             '{:4d}'.format(int(internal.tone_C_generator.period.value)),
             '{:4d}'.format(int(internal.tone_C_generator.counter.value)),
                         "|#|" if internal.tone_C_generator.out == 1 else "|-|",  #"!",
-            '{:4d}'.format(int(internal.noise_generator.tone.period.value)),
-            '{:4d}'.format(int(internal.noise_generator.tone.counter.value)),
+            '{:2d}'.format(int(internal.noise_generator.tone.period.value)),
+            '{:2d}'.format(int(internal.noise_generator.tone.counter.value)),
                         ">" if internal.noise_generator.tone.out == 1 else " ",
-            internal.noise_generator.lfsr.value, ">>",
+            internal.noise_generator.lfsr.value,
+                        "|#|" if internal.noise_generator.out == 1 else "|-|", # "|",
+            '{:5d}'.format(int(internal.envelope_generator.tone.period.value)),
+            '{:5d}'.format(int(internal.envelope_generator.tone.counter.value)),
+            str(internal.register[13])[4:8], 
+                        ("A" if internal.envelope_generator.attack__    == 1 else ".") +
+                        ("L" if internal.envelope_generator.alternate__ == 1 else ".") +
+                        ("H" if internal.envelope_generator.hold__      == 1 else "."),
+                        ("S" if internal.envelope_generator.stop        == 1 else "."),
+            '{:1X}'.format(int(internal.envelope_generator.envelope_counter.value)),
+                        "~" if internal.envelope_generator.invert_output == 1 else " ",
+            '{:1X}'.format(int(internal.envelope_generator.out)),
+                        ">>",
             '{:3d}'.format(int(dut.uo_out.value >> 1)),
                         "@" if dut.uo_out[0].value == 1 else ".")
     # except:
@@ -41,7 +53,7 @@ async def test_psg(dut):
     print_chip_state(dut)
 
     dut._log.info("run")
-    for i in range(32):
+    for i in range(40):
         await ClockCycles(dut.clk, 16)
         print_chip_state(dut)
 
