@@ -36,8 +36,8 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     //   0    1    Read from Register Array  (NOT IMPLEMENTED!)
     //   1    0    Write to Register Array
     //   1    1    Latch Register Address
-    wire bdir = uio_in[0];
-    wire bc1 = uio_in[1];
+    wire bdir = uio_in[1];
+    wire bc1 = uio_in[0];
     wire bus_inactive   = !bdir && !bc1;
     wire bus_read       = !bdir &&  bc1;
     wire bus_write      =  bdir && !bc1;
@@ -50,8 +50,9 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
                                         // in order to accept writes to the register file 
 
     reg [7:0] clk_counter;
-    wire clk_16  = reset == 0 ? clk_counter[3]: clk;      // master clock divided by  16 for tunes and noise
-    wire clk_256 = reset == 0 ? clk_counter[7]: clk;      // master clock divided by 256 for envelope
+    wire clk_16  = reset == 0 ? clk_counter[3]: clk;       // master clock divided by  16 for tunes and noise
+    wire clk_256 = reset == 0 && restart_envelope == 0
+                              ? clk_counter[2]: clk;       // master clock divided by 256 for envelope
 
     localparam REGISTERS = 16;
     reg [3:0] latched_register;
@@ -69,7 +70,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             // register[13] <= 4'b0000; //  \___ 
             // register[13] <= 4'b0100; //  /___
             // register[13] <= 4'b1000; //  \\\\
-            // register[13] <= 4'b1001; //     \___
+            // register[13] <= 4'b1001; //  \___
             // register[13] <= 4'b1010; //  \/\/
             // register[13] <= 4'b1011; //  \```
             // register[13] <= 4'b1100; //  ////

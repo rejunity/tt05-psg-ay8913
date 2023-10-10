@@ -6,6 +6,10 @@ def print_chip_state(dut):
     try:
         internal = dut.tt_um_rejunity_ay8913_uut
         print(
+            '{:2d}'.format(int(internal.latched_register.value)), 
+            ("A" if internal.active    == 1 else ".") +
+            ("L" if internal.latch    == 1 else ".") +
+            ("W" if internal.write    == 1 else ".") + "!",
             '{:4d}'.format(int(internal.tone_A_generator.period.value)),
             '{:4d}'.format(int(internal.tone_A_generator.counter.value)),
                         "|#|" if internal.tone_A_generator.out == 1 else "|-|", # "|",
@@ -22,10 +26,11 @@ def print_chip_state(dut):
                         "|#|" if internal.noise_generator.out == 1 else "|-|", # "|",
             '{:5d}'.format(int(internal.envelope_generator.tone.period.value)),
             '{:5d}'.format(int(internal.envelope_generator.tone.counter.value)),
-            str(internal.register[13])[4:8], 
+            str(internal.register[13].value)[4:8],
                         ("A" if internal.envelope_generator.attack__    == 1 else ".") +
                         ("L" if internal.envelope_generator.alternate__ == 1 else ".") +
                         ("H" if internal.envelope_generator.hold__      == 1 else "."),
+                        (">" if internal.restart_envelope               == 1 else "0"),
                         ("S" if internal.envelope_generator.stop        == 1 else "."),
             '{:1X}'.format(int(internal.envelope_generator.envelope_counter.value)),
                         "~" if internal.envelope_generator.invert_output == 1 else " ",
@@ -35,6 +40,20 @@ def print_chip_state(dut):
                         "@" if dut.uo_out[0].value == 1 else ".")
     except:
         print(dut.uo_out.value)
+
+
+async def set_register(dut, reg, val):
+    dut.uio_in.value =       0b000000_11 # latch register
+    dut.ui_in.value  = reg & 15
+    await ClockCycles(dut.clk, 2)
+    print_chip_state(dut)
+    dut.uio_in.value =       0b000000_10 # write value
+    dut.ui_in.value  = val
+    await ClockCycles(dut.clk, 1)
+    print_chip_state(dut)
+    dut.uio_in.value =       0b000000_00 # inactivate
+    dut.ui_in.value  = 0
+    await ClockCycles(dut.clk, 1)
 
 @cocotb.test()
 async def test_psg(dut):
@@ -52,10 +71,39 @@ async def test_psg(dut):
 
     print_chip_state(dut)
 
+    dut._log.info("init")
+    await set_register(dut, 13, 0b0100)
+    print_chip_state(dut)
+
+    # // register[13] <= 4'b0000; //  \___
+    # // register[13] <= 4'b0100; //  /___
+    # // register[13] <= 4'b1000; //  \\\\
+    # // register[13] <= 4'b1001; //  \___
+    # // register[13] <= 4'b1010; //  \/\/
+    # // register[13] <= 4'b1011; //  \```
+    # // register[13] <= 4'b1100; //  ////
+    # // register[13] <= 4'b1101; //  /```
+    # // register[13] <= 4'b1110; //  /\/\
+    # // register[13] <= 4'b1111; //  /___
+
     dut._log.info("run")
-    for i in range(40):
+    for i in range(32):
         await ClockCycles(dut.clk, 16)
         print_chip_state(dut)
+
+    dut._log.info("env")
+
+    for n in range(8, 16):
+        await set_register(dut, 13, n)
+        print_chip_state(dut)
+        for i in range(64):
+            await ClockCycles(dut.clk, 16)
+
+    for n in range(8):
+        await set_register(dut, 13, n)
+        print_chip_state(dut)
+        for i in range(64):
+            await ClockCycles(dut.clk, 16)
 
 
 async def test_sn(dut):
