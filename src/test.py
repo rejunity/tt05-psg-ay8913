@@ -3,7 +3,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, FallingEdge, Timer, ClockCycles
 
 def print_chip_state(dut):
-    # try:
+    try:
         internal = dut.tt_um_rejunity_ay8913_uut
         print(
             '{:4d}'.format(int(internal.tone_A_generator.period.value)),
@@ -33,8 +33,8 @@ def print_chip_state(dut):
                         ">>",
             '{:3d}'.format(int(dut.uo_out.value >> 1)),
                         "@" if dut.uo_out[0].value == 1 else ".")
-    # except:
-        # print(dut.uo_out.value)
+    except:
+        print(dut.uo_out.value)
 
 @cocotb.test()
 async def test_psg(dut):
