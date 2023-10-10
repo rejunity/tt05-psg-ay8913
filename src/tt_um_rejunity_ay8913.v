@@ -50,9 +50,9 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
                                         // in order to accept writes to the register file 
 
     reg [7:0] clk_counter;
-    wire clk_16  = reset == 0 ? clk_counter[3]: clk;       // master clock divided by  16 for tunes and noise
-    wire clk_256 = reset == 0 && restart_envelope == 0
-                              ? clk_counter[2]: clk;       // master clock divided by 256 for envelope
+    wire clk_16  = reset ? clk : clk_counter[3];    // master clock divided by  16 for tunes and noise
+    wire clk_256 = reset | restart_envelope         // BUT pass master clock when reset is asserted, otherwise short resets will be missed by the slow clock
+                         ? clk : clk_counter[7];    // master clock divided by 256 for envelope
 
     localparam REGISTERS = 16;
     reg [3:0] latched_register;

@@ -97,13 +97,13 @@ async def test_psg(dut):
         await set_register(dut, 13, n)
         print_chip_state(dut)
         for i in range(64):
-            await ClockCycles(dut.clk, 16)
+            await ClockCycles(dut.clk, 16*16)
 
     for n in range(8):
         await set_register(dut, 13, n)
         print_chip_state(dut)
         for i in range(64):
-            await ClockCycles(dut.clk, 16)
+            await ClockCycles(dut.clk, 16*16)
 
 
 async def test_sn(dut):
