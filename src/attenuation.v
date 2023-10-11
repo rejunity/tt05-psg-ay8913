@@ -7,22 +7,57 @@
 
 
 // https://github.com/lvd2/ay-3-8910_reverse_engineered/blob/master/rtl/render/aytab.v
+// v/0xFFFF for v in [0x0000, 0x0290, 0x03B0, 0x0560, 0x07E0, 0x0BB0, 0x1080, 0x1B80, 0x2070, 0x3480, 0x4AD0, 0x5F70, 0x7E10, 0xA2A0, 0xCE40, 0xFFFF]]
+
 // assign tbl[ 0] = 16'h0000;
-// assign tbl[ 1] = 16'h0290;
-// assign tbl[ 2] = 16'h03B0;
-// assign tbl[ 3] = 16'h0560;
-// assign tbl[ 4] = 16'h07E0;
-// assign tbl[ 5] = 16'h0BB0;
-// assign tbl[ 6] = 16'h1080;
-// assign tbl[ 7] = 16'h1B80;
-// assign tbl[ 8] = 16'h2070;
-// assign tbl[ 9] = 16'h3480;
-// assign tbl[10] = 16'h4AD0;
-// assign tbl[11] = 16'h5F70;
-// assign tbl[12] = 16'h7E10;
-// assign tbl[13] = 16'hA2A0;
-// assign tbl[14] = 16'hCE40;
+// assign tbl[ 1] = 16'h0290;      // 0,010009918364233
+// assign tbl[ 2] = 16'h03B0;      // 0,014404516670481
+// assign tbl[ 3] = 16'h0560;      // 0,021054242215592
+// assign tbl[ 4] = 16'h07E0;      // 0,030846913013541
+// assign tbl[ 5] = 16'h0BB0;      // 0,045780735980415
+// assign tbl[ 6] = 16'h1080;      // 0,064631627266468
+// assign tbl[ 7] = 16'h1B80;      // 0,107719378777446
+// assign tbl[ 8] = 16'h2070;      // 0,127059903603397
+// assign tbl[ 9] = 16'h3480;      // 0,205646086756943
+// assign tbl[10] = 16'h4AD0;      // 0,293045673628644
+// assign tbl[11] = 16'h5F70;      // 0,373835207711728
+// assign tbl[12] = 16'h7E10;      // 0,493795424986612
+// assign tbl[13] = 16'hA2A0;      // 0,637013235406625
+// assign tbl[14] = 16'hCE40;      // 0,807895340830847
 // assign tbl[15] = 16'hFFFF;
+
+// 0.0,
+// 0.010009918364232854,
+// 0.014404516670481423,
+// 0.020996414129854278,
+// 0.030762188143739988,
+// 0.04565499351491569,
+// 0.06445410849164569,
+// 0.10742351415274282,
+// 0.12671091783016708,
+// 0.2050812542915999,
+// 0.2922407873655299,
+// 0.372808422980087,
+// 0.49243915465018695,
+// 0.6352635996032654,
+// 0.8056763561455711,
+// 1.
+
+// struct ay_ym_param
+//     {
+//         double r_up;
+//         double r_down;
+//         int    res_count;
+//         double res[32];
+//     };
+
+// static const ay8910_device::ay_ym_param ay8910_param =
+// {
+//     800000, 8000000,
+//     16,
+//     { 15950, 15350, 15090, 14760, 14275, 13620, 12890, 11370,
+//         10600,  8590,  7190,  5985,  4820,  3945,  3017,  2345 }
+// };
 
 module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
     input  wire in,
@@ -35,22 +70,21 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
         case(in ? control : -1) // if in == 0, output is made 0 via the default branch in case statement
 
             // @TODO: case numbers probably should be reversed!
-            0:  out =           MAX_VOLUME;
-            1:  out = `ATLEAST1(MAX_VOLUME * 0.707);          // NOTE: YM2149 32 steps: 1V, .841, .707, .595,
-            2:  out = `ATLEAST1(MAX_VOLUME * 0.5);            //                        .5, .42, .354, .297,
-            3:  out = `ATLEAST1(MAX_VOLUME * 0.303);          //                        .25, .21, .177, .149,
-            4:  out = `ATLEAST1(MAX_VOLUME * 0.25);           //                        .125
-            5:  out = `ATLEAST1(MAX_VOLUME * 0.1515);
-            6:  out = `ATLEAST1(MAX_VOLUME * 0.125);
-            7:  out = `ATLEAST1(MAX_VOLUME * 0.07575);
-            8:  out = `ATLEAST1(MAX_VOLUME * 0.0625);
-            9:  out = `ATLEAST1(MAX_VOLUME * 0.037875);
-            10: out = `ATLEAST1(MAX_VOLUME * 0.03125);
-            11: out = `ATLEAST1(MAX_VOLUME * 0.0189375);
-            12: out = `ATLEAST1(MAX_VOLUME * 0.015625);
-            13: out = `ATLEAST1(MAX_VOLUME * 0.00946875);
-            14: out = `ATLEAST1(MAX_VOLUME * 0.0078125);
-            // 0.3535, 0.17675, 0.088375, 0.0441875, 0.02209375, 0.011046875,
+            15: out =           MAX_VOLUME;
+            14: out = `ATLEAST1(MAX_VOLUME * 0.707);          // NOTE: YM2149 32 steps: 1V, .841, .707, .595,
+            13: out = `ATLEAST1(MAX_VOLUME * 0.5);            //                        .5, .42, .354, .297,w
+            12: out = `ATLEAST1(MAX_VOLUME * 0.303);          //                        .25, .21, .177, .149,
+            11: out = `ATLEAST1(MAX_VOLUME * 0.25);           //                        .125
+            10: out = `ATLEAST1(MAX_VOLUME * 0.1515);
+            9:  out = `ATLEAST1(MAX_VOLUME * 0.125);
+            8:  out = `ATLEAST1(MAX_VOLUME * 0.07575);
+            7:  out = `ATLEAST1(MAX_VOLUME * 0.0625);
+            6:  out = `ATLEAST1(MAX_VOLUME * 0.037875);
+            5:  out = `ATLEAST1(MAX_VOLUME * 0.03125);
+            4:  out = `ATLEAST1(MAX_VOLUME * 0.0189375);
+            3:  out = `ATLEAST1(MAX_VOLUME * 0.015625);
+            2:  out = `ATLEAST1(MAX_VOLUME * 0.00946875);
+            1:  out = `ATLEAST1(MAX_VOLUME * 0.0078125);
                 default:
                     out = 0;
         endcase
