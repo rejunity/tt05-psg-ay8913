@@ -132,7 +132,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             noise_disable_A,
             tone_disable_C,
             tone_disable_B,
-            tone_disable_A} = ! register[7][5:0];
+            tone_disable_A} = register[7][5:0];
     assign {envelope_A, amplitude_A[3:0]} = register[ 8][4:0];
     assign {envelope_B, amplitude_B[3:0]} = register[ 9][4:0];
     assign {envelope_C, amplitude_C[3:0]} = register[10][4:0];
@@ -195,7 +195,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire channel_C = (tone_disable_C | tone_C) & (noise_disable_C | noise);
 
     wire [CHANNEL_OUTPUT_BITS-1:0] volume_A, volume_B, volume_C;
-    attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_A (
+    attenuation #(.VOLUME_BITS(CHANNEL_OUTPUT_BITS)) attenuation_A ( // @TODO: rename to amplitude to match docs
         .in(channel_A),
         .control(envelope_A ? envelope: amplitude_A),
         .out(volume_A)
