@@ -27,7 +27,7 @@ documentation:
   author:       "rej"
   title:        "Classic 8-bit era Programmable Sound Generator AY-3-8193"
   language:     "Verilog"
-  description:  "The AY-3-8913 is a 3-voice programmable sound generator (PSG) chip from General Instruments. The AY-3-8913 is a smaller variant of AY-3-8910 and its analog YM2149."
+  description:  "The AY-3-8913 is a 3-voice programmable sound generator (PSG) chip from General Instruments. The AY-3-8913 is a smaller variant of AY-3-8910 or its analog YM2149."
 
 # Longer description of how the project works. You can use standard markdown format.
   how_it_works: |
