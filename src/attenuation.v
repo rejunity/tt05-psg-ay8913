@@ -69,22 +69,58 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
     always @(*) begin
         case(in ? control : -1) // if in == 0, output is made 0 via the default branch in case statement
 
-            // @TODO: case numbers probably should be reversed!
-            15: out =           MAX_VOLUME;
-            14: out = `ATLEAST1(MAX_VOLUME * 0.707);          // NOTE: YM2149 32 steps: 1V, .841, .707, .595,
-            13: out = `ATLEAST1(MAX_VOLUME * 0.5);            //                        .5, .42, .354, .297,w
-            12: out = `ATLEAST1(MAX_VOLUME * 0.303);          //                        .25, .21, .177, .149,
-            11: out = `ATLEAST1(MAX_VOLUME * 0.25);           //                        .125
-            10: out = `ATLEAST1(MAX_VOLUME * 0.1515);
-            9:  out = `ATLEAST1(MAX_VOLUME * 0.125);
-            8:  out = `ATLEAST1(MAX_VOLUME * 0.07575);
-            7:  out = `ATLEAST1(MAX_VOLUME * 0.0625);
-            6:  out = `ATLEAST1(MAX_VOLUME * 0.037875);
-            5:  out = `ATLEAST1(MAX_VOLUME * 0.03125);
-            4:  out = `ATLEAST1(MAX_VOLUME * 0.0189375);
-            3:  out = `ATLEAST1(MAX_VOLUME * 0.015625);
-            2:  out = `ATLEAST1(MAX_VOLUME * 0.00946875);
-            1:  out = `ATLEAST1(MAX_VOLUME * 0.0078125);
+            // https://github.com/lvd2/ay-3-8910_reverse_engineered/blob/master/rtl/render/aytab.v
+            0:  out =           0;
+            1:  out = `ATLEAST1(MAX_VOLUME * 0.010009918364233);
+            2:  out = `ATLEAST1(MAX_VOLUME * 0.014404516670481);
+            3:  out = `ATLEAST1(MAX_VOLUME * 0.021054242215592);
+            4:  out = `ATLEAST1(MAX_VOLUME * 0.030846913013541);
+            5:  out = `ATLEAST1(MAX_VOLUME * 0.045780735980415);
+            6:  out = `ATLEAST1(MAX_VOLUME * 0.064631627266468);
+            7:  out = `ATLEAST1(MAX_VOLUME * 0.107719378777446);
+            8:  out = `ATLEAST1(MAX_VOLUME * 0.127059903603397);
+            9:  out = `ATLEAST1(MAX_VOLUME * 0.205646086756943);
+            10: out = `ATLEAST1(MAX_VOLUME * 0.293045673628644);
+            11: out = `ATLEAST1(MAX_VOLUME * 0.373835207711728);
+            12: out = `ATLEAST1(MAX_VOLUME * 0.493795424986612);
+            13: out = `ATLEAST1(MAX_VOLUME * 0.637013235406625);
+            14: out = `ATLEAST1(MAX_VOLUME * 0.807895340830847);
+            15: out =          MAX_VOLUME;
+
+            // YM2149, numbers from the manual, every 2nd step is taken
+            // YM2149 32 steps: 1V, .841, .707, .595, .5, .42, .354, .297, .25, .21, .177, .149, .125
+            // 15: out =           MAX_VOLUME;
+            // 14: out = `ATLEAST1(MAX_VOLUME * 0.707);
+            // 13: out = `ATLEAST1(MAX_VOLUME * 0.5  );
+            // 12: out = `ATLEAST1(MAX_VOLUME * 0.354);
+            // 11: out = `ATLEAST1(MAX_VOLUME * 0.25 );
+            // 10: out = `ATLEAST1(MAX_VOLUME * 0.177);   
+            // 9:  out = `ATLEAST1(MAX_VOLUME * 0.125);
+            // 8:  out = `ATLEAST1(MAX_VOLUME * 0.089);
+            // 7:  out = `ATLEAST1(MAX_VOLUME * 0.063);
+            // 6:  out = `ATLEAST1(MAX_VOLUME * 0.045);
+            // 5:  out = `ATLEAST1(MAX_VOLUME * 0.032);
+            // 4:  out = `ATLEAST1(MAX_VOLUME * 0.023);
+            // 3:  out = `ATLEAST1(MAX_VOLUME * 0.016);
+            // 2:  out = `ATLEAST1(MAX_VOLUME * 0.012);
+            // 1:  out = `ATLEAST1(MAX_VOLUME * 0.008);
+
+            // Somewhat weird numbers from the original AY-3-8190 documentation
+            // 15: out =           MAX_VOLUME;
+            // 14: out = `ATLEAST1(MAX_VOLUME * 0.707);
+            // 13: out = `ATLEAST1(MAX_VOLUME * 0.5);
+            // 12: out = `ATLEAST1(MAX_VOLUME * 0.303);
+            // 11: out = `ATLEAST1(MAX_VOLUME * 0.25);
+            // 10: out = `ATLEAST1(MAX_VOLUME * 0.1515);   
+            // 9:  out = `ATLEAST1(MAX_VOLUME * 0.125);
+            // 8:  out = `ATLEAST1(MAX_VOLUME * 0.07575);
+            // 7:  out = `ATLEAST1(MAX_VOLUME * 0.0625);
+            // 6:  out = `ATLEAST1(MAX_VOLUME * 0.037875);
+            // 5:  out = `ATLEAST1(MAX_VOLUME * 0.03125);
+            // 4:  out = `ATLEAST1(MAX_VOLUME * 0.0189375);
+            // 3:  out = `ATLEAST1(MAX_VOLUME * 0.015625);
+            // 2:  out = `ATLEAST1(MAX_VOLUME * 0.00946875);
+            // 1:  out = `ATLEAST1(MAX_VOLUME * 0.0078125);
                 default:
                     out = 0;
         endcase
