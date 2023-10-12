@@ -14,12 +14,14 @@
 //     1 1 1 0  /\/\
 //     1 1 1 1  /___
 
-// Continue == 0
+// Continue == 0 provides duplicated behavior.
+// Map it Continue == 1 configurations that produce exactly the same behaviors:
 //     0 0 x x  \___ -> 1 0 0 1
 //     0 1 x x  /___ -> 1 1 1 1
 // Hold' = !Continue, Alternate' = Attack
 
-// Hold == 1
+// Hold == 1 stops after first envelope cycle.
+// The value that is hold once stopped can be determined from Attack XOR Alternate.
 //       Attack'
 //       | Alternate'
 //       0 0 1  \___
@@ -98,7 +100,7 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
         if (reset)
             invert_output <= !attack__;
         else begin
-            if (trigger_posedge && envelope_counter == MAX_VALUE)
+            if (trigger_posedge && envelope_counter == MAX_VALUE) // NOTE: envelope_counter == MAX_VALUE is used here instead of 'stop' signal, because 'stop' will take effect only on the next cycle!
                 if (alternate__)
                     invert_output <= ~invert_output;
         end
