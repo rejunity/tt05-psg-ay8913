@@ -36,26 +36,169 @@ def print_chip_state(dut):
                         "~" if internal.envelope_generator.invert_output == 1 else " ",
             '{:1X}'.format(int(internal.envelope_generator.out)),
                         ">>",
-            '{:3d}'.format(int(dut.uo_out.value >> 1)),
-                        "@" if dut.uo_out[0].value == 1 else ".")
+            '{:3d}'.format(int(dut.uo_out.value)))
+                        # "@" if dut.uo_out[0].value == 1 else ".")
+            # '{:3d}'.format(int(dut.uo_out.value >> 1)),
+                        # "@" if dut.uo_out[0].value == 1 else ".")
     except:
         print(dut.uo_out.value)
 
+async def reset(dut):
+    dut._log.info("start")
+    clock = Clock(dut.clk, 10, units="us")
+    cocotb.start_soon(clock.start())
+
+    dut._log.info("reset")
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 10)
+    dut.rst_n.value = 1
+
+async def done(dut):
+    # await ClockCycles(dut.clk, 1)
+    dut._log.info("DONE!")
 
 async def set_register(dut, reg, val):
-    dut.uio_in.value =       0b000000_11 # latch register
+    dut.uio_in.value =       0b000000_11 # Latch register index
     dut.ui_in.value  = reg & 15
     await ClockCycles(dut.clk, 2)
     print_chip_state(dut)
-    dut.uio_in.value =       0b000000_10 # write value
+    dut.uio_in.value =       0b000000_10 # Write value to register
     dut.ui_in.value  = val
     await ClockCycles(dut.clk, 1)
     print_chip_state(dut)
-    dut.uio_in.value =       0b000000_00 # inactivate
+    dut.uio_in.value =       0b000000_00 # Inactivate: disable writes and trigger envelope restart, if last write was to Envelope register
     dut.ui_in.value  = 0
     await ClockCycles(dut.clk, 1)
 
+def get_output(dut):
+    return int(dut.uo_out.value)
+
+async def record_amplitude_table(dut):
+    await set_register(dut,  7, 0b111_111)  # Mixer: disable all tones and noises
+    amplitudes = []
+    for vol in range(16):
+        await set_register(dut, 8, vol)     # Channel A: disable envelope, set volume
+        amplitudes.append(get_output(dut))
+    return amplitudes
+
+async def assert_constant_output(dut, cycles):
+    constant_output = dut.uo_out.value
+    for i in range(cycles):
+        await ClockCycles(dut.clk, 1)
+        assert dut.uo_out.value == constant_output
+
+### TESTS
+
+ZERO_VOLUME = 2 # int(0.2 * 256) # AY might be outputing low constant DC as silence instead of complete 0V
+MAX_VOLUME = 255
+
 @cocotb.test()
+async def test_silence(dut):
+    await reset(dut)
+
+    dut._log.info("disable tones and noises on all channels ")
+    await set_register(dut,  7, 0b111_111)  # Mixer: disable all tones and noises
+    await set_register(dut,  8, 0b0_0000)   # Channel A: disable envelope, set channel volume to 0
+    await set_register(dut,  9, 0b0_0000)   # Channel B: -- // --
+    await set_register(dut, 10, 0b0_0000)   # Channel C: -- // --
+
+    print_chip_state(dut)
+
+    await assert_constant_output(dut, 256)
+    assert get_output(dut) <= ZERO_VOLUME
+
+    await done(dut)
+
+@cocotb.test()
+async def test_silence_with_zero_volume(dut):
+    await reset(dut)
+
+    dut._log.info("set volume to 0")
+    await set_register(dut,  8, 0b0_0000)   # Channel A: disable envelope, set channel volume to 0
+    await set_register(dut,  9, 0b0_0000)   # Channel B: -- // --
+    await set_register(dut, 10, 0b0_0000)   # Channel C: -- // --
+
+    print_chip_state(dut)
+
+    await assert_constant_output(dut, 256)
+    assert get_output(dut) <= ZERO_VOLUME
+
+    await done(dut)
+
+@cocotb.test()
+async def test_direct_channel_outputs_with_tones_and_noises_disabled(dut):
+    await reset(dut)
+
+    dut._log.info("disable tones and noises on all channels ")
+    await set_register(dut,  7, 0b111_111)      # Mixer: disable all tones and noises
+
+    for chan in range(3):
+        await set_register(dut,  8, 0b0_0000)   # Channel A: disable envelope, set channel A to "fixed" level controlled by 4 LSB bits
+        await set_register(dut,  9, 0b0_0000)   # Channel B: -- // --
+        await set_register(dut, 10, 0b0_0000)   # Channel C: -- // --
+
+        # validate that volume increases with every step
+        prev_volume = -1
+        for vol in range(16):
+            await set_register(dut, 8+chan, vol) # Channel A/B/C: disable envelope, set volume
+            await assert_constant_output(dut, 16)
+            assert get_output(dut) > prev_volume or (get_output(dut) >= prev_volume and prev_volume < ZERO_VOLUME * 1.1)
+            prev_volume = get_output(dut)
+
+    await done(dut)
+
+@cocotb.test()
+async def test_envelopes(dut):
+    await reset(dut)
+
+    dut._log.info("record amplitude table from Channel A")
+    amplitudes = await record_amplitude_table(dut)
+    print(amplitudes)
+
+    dut._log.info("route envelope value directly to the Channel A output")
+    await set_register(dut,  7, 0b111_111)  # Mixer: disable all tones and noises
+    await set_register(dut,  8, 0b1_0000)   # Channel A: set channel A to envelope mode
+
+    envelopes_0 =  [r"\___ "] * 4 + \
+                   [r"/___ "] * 4           # envelopes with "continue" flag = 0
+    envelopes_1 =  [r"\\\\ ",               # envelopes with "continue" flag = 1
+                    r"\___ ",
+                    r"\/\/ ",
+                    r"\``` ",
+                    r"//// ",
+                    r"/``` ",
+                    r"/\/\ ",
+                    r"/___ "]
+
+    async def assert_segment(segment):
+        for s in segment:
+            assert get_output(dut) == amplitudes[s]
+            await ClockCycles(dut.clk, 16*32)                           # @FIX: should be 16*16 here!!!
+
+    async def sweep_envelopes(envelopes):
+        for n, envelope in enumerate(envelopes):
+            dut._log.info(f"check envelope {n} pattern: {envelope}")
+            await set_register(dut, 13, n)  # Envelope: set shape
+            print_chip_state(dut)
+            await ClockCycles(dut.clk, 1)
+            print_chip_state(dut)
+            await ClockCycles(dut.clk, 1)
+            print_chip_state(dut)
+            for segment in envelope:
+                if segment == '\\':
+                    await assert_segment(range(15, -1, -1))
+                elif segment == '/':
+                    await assert_segment(range(0, 16, 1))
+                elif segment == '_':
+                    await assert_segment([0] * 16)
+                elif segment == '`':
+                    await assert_segment([15] * 16)
+
+    await sweep_envelopes(envelopes_0 + envelopes_1)
+
+    await done(dut)
+
+# @cocotb.test()
 async def test_psg(dut):
 
     dut._log.info("start")
@@ -72,11 +215,14 @@ async def test_psg(dut):
     print_chip_state(dut)
 
     dut._log.info("init")
+    await set_register(dut,  7, 0b111_111)  # Mixer: disable all tones and noise
+    await set_register(dut,  8, 0b1_0000)   # Channel A: set to envelope mode
     await set_register(dut, 13, 0b0100)
     print_chip_state(dut)
 
     # // register[13] <= 4'b0000; //  \___
     # // register[13] <= 4'b0100; //  /___
+
     # // register[13] <= 4'b1000; //  \\\\
     # // register[13] <= 4'b1001; //  \___
     # // register[13] <= 4'b1010; //  \/\/
@@ -97,13 +243,13 @@ async def test_psg(dut):
         await set_register(dut, 13, n)
         print_chip_state(dut)
         for i in range(64):
-            await ClockCycles(dut.clk, 16*16)
+            await ClockCycles(dut.clk, 16)
 
     for n in range(8):
         await set_register(dut, 13, n)
         print_chip_state(dut)
         for i in range(64):
-            await ClockCycles(dut.clk, 16*16)
+            await ClockCycles(dut.clk, 16)
 
 
 async def test_sn(dut):
