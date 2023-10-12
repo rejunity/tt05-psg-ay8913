@@ -2,6 +2,11 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, FallingEdge, Timer, ClockCycles
 
+MASTER_CLOCK = 2_000_000 # 2MHZ
+
+ZERO_VOLUME = 2 # int(0.2 * 256) # AY might be outputing low constant DC as silence instead of complete 0V
+MAX_VOLUME = 255
+
 def print_chip_state(dut):
     try:
         internal = dut.tt_um_rejunity_ay8913_uut
@@ -44,8 +49,10 @@ def print_chip_state(dut):
         print(dut.uo_out.value)
 
 async def reset(dut):
+    master_clock = MASTER_CLOCK # // 16
+    cycle_in_nanoseconds = 1e9 / master_clock # 1 / 2Mhz / nanosecond
     dut._log.info("start")
-    clock = Clock(dut.clk, 10, units="us")
+    clock = Clock(dut.clk, cycle_in_nanoseconds, units="ns")
     cocotb.start_soon(clock.start())
 
     dut._log.info("reset")
@@ -87,10 +94,18 @@ async def assert_constant_output(dut, cycles):
         await ClockCycles(dut.clk, 1)
         assert dut.uo_out.value == constant_output
 
-### TESTS
+async def assert_tone_output(dut, frequency, pulses, v0 = ZERO_VOLUME, v1 = MAX_VOLUME):
+    nanoseconds_per_sample = 1e9 / frequency
+    last_state = -1
+    for i in range(pulses*2):
+        await Timer(nanoseconds_per_sample, units="ns", round_mode="round")
+        new_state = get_output(dut) > (v0 + v1) // 2
+        if (last_state != -1):
+            assert last_state != new_state
+        last_state = new_state
+        print_chip_state(dut)
 
-ZERO_VOLUME = 2 # int(0.2 * 256) # AY might be outputing low constant DC as silence instead of complete 0V
-MAX_VOLUME = 255
+### TESTS
 
 @cocotb.test()
 async def test_silence(dut):
@@ -122,6 +137,37 @@ async def test_silence_with_zero_volume(dut):
 
     await assert_constant_output(dut, 256)
     assert get_output(dut) <= ZERO_VOLUME
+
+    await done(dut)
+
+@cocotb.test()
+async def test_tone_frequencies(dut):
+    await reset(dut)
+
+    dut._log.info("set volume to 0")
+    await set_register(dut,  7, 0b111_110)  # Mixer: only Channel A tone is enabled
+    await set_register(dut,  8, 0b0_1111)   # Channel A: disable envelope, set channel to maximum volume
+
+    dut._log.info("test tone with period 0 (default after reset)")
+    print_chip_state(dut)
+    await assert_tone_output(dut, MASTER_CLOCK // 16, 16) # default tone frequency after reset should be 0
+
+    dut._log.info("test tone with period 1, should be equal to period 0")
+    await set_register(dut,  0, 1)          # Tone A: set fine tune period to 1
+    print_chip_state(dut)
+    await assert_tone_output(dut, MASTER_CLOCK // 16, 16)
+
+    for n in range(2, 5, 1):
+        dut._log.info(f"test tone {n}")
+        await set_register(dut,  0, n)      # Tone A: set fine tune period to n
+        print_chip_state(dut)
+        await assert_tone_output(dut, MASTER_CLOCK // (16 * n), 4)
+
+    dut._log.info("test tone with the highest period 4095")
+    await set_register(dut,  0, 0b1111_1111)          # Tone A: set fine tune period to max
+    await set_register(dut,  1, 0b0000_1111)          # Tone A: set coarse period to max
+    print_chip_state(dut)
+    await assert_tone_output(dut, MASTER_CLOCK // (16 * 4095), 2)
 
     await done(dut)
 
