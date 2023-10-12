@@ -59,6 +59,9 @@
 //         10600,  8590,  7190,  5985,  4820,  3945,  3017,  2345 }
 // };
 
+// @TODO: perhaps rename to volume or amplitude to match AY manuals
+// @TODO: python script and convert MAME params into amplitude levels, compare with lvd version
+
 module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
     input  wire in,
     input  wire [CONTROL_BITS-1:0] control,
