@@ -88,6 +88,20 @@ async def record_amplitude_table(dut):
         amplitudes.append(get_output(dut))
     return amplitudes
 
+async def set_tone_frequency(dut, channel, frequency):
+    period = MASTER_CLOCK // (16 * frequency)
+    await set_tone_period(dut, channel, period)
+
+async def set_tone_period(dut, channel, period):
+    await set_register(dut, channel*2+0, period & 0xFF)     # Tone A/B/C: set fine tune period
+    if period > 0xFF:
+        await set_register(dut, channel*2+1, )              # Tone A/B/C: set coarse tune period
+
+# async def set_noise_frequency(dut, frequency):
+
+# async def set_noise_period(dut, frequency):
+    
+
 async def assert_constant_output(dut, cycles = 8):
     constant_output = dut.uo_out.value
     for i in range(cycles):
@@ -105,6 +119,18 @@ async def assert_tone_output(dut, frequency, pulses = 4, v0 = ZERO_VOLUME, v1 = 
             assert last_state != new_state
         last_state = new_state
         print_chip_state(dut)
+
+# async def assert_tone_frequency(dut, frequency, pulses = 4, v0 = ZERO_VOLUME, v1 = MAX_VOLUME):
+#     nanoseconds_per_sample = 1e9 / frequency
+#     mid_volume = (v0 + v1) // 2
+#     last_state = -1
+#     for i in range(pulses*2):
+#         await Timer(nanoseconds_per_sample / 2, units="ns", round_mode="round")
+#         new_state = get_output(dut) > mid_volume
+#         if (last_state != -1):
+#             assert last_state != new_state
+#         last_state = new_state
+#         print_chip_state(dut)
 
 async def assert_noise_output(dut, frequency, pulses = 256, max_error = 0.15, v0 = ZERO_VOLUME, v1 = MAX_VOLUME):
     cycles = int((MASTER_CLOCK / frequency) * pulses)
