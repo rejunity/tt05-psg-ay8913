@@ -50,7 +50,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
                                         // in order to accept writes to the register file 
 
     reg [7:0] clk_counter;
-    wire clk_16  = reset ? clk : clk_counter[3];    // master clock divided by  16 for tunes and noise
+    wire clk_8   = reset ? clk : clk_counter[2];    // master clock divided by 8 for tunes and noise
     wire clk_256 = reset | restart_envelope         // BUT pass master clock when reset is asserted, otherwise short resets will be missed by the slow clock
                          ? clk : clk_counter[7];    // master clock divided by 256 for envelope
 
@@ -81,7 +81,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             active <= 0;
             restart_envelope <= 0;
         end else begin
-            clk_counter <= clk_counter + 1;                 // provides clk_16 and clk_256 dividers
+            clk_counter <= clk_counter + 1;                 // provides clk_8 and clk_256 dividers
 
             if (bus_latch_reg)                              // chip becomes active for subsequent reads/writes
                 active <= cs;                               // IFF cs==1, during the Latch Register Address phase
@@ -146,26 +146,26 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     // Tone, noise & envelope generators
     wire tone_A, tone_B, tone_C, noise;
     tone #(.PERIOD_BITS(12)) tone_A_generator (
-        .clk(clk_16),
+        .clk(clk_8),
         .reset(reset),
         .period(tone_period_A),
         .out(tone_A)
         );
     tone #(.PERIOD_BITS(12)) tone_B_generator (
-        .clk(clk_16),
+        .clk(clk_8),
         .reset(reset),
         .period(tone_period_B),
         .out(tone_B)
         );
     tone #(.PERIOD_BITS(12)) tone_C_generator (
-        .clk(clk_16),
+        .clk(clk_8),
         .reset(reset),
         .period(tone_period_C),
         .out(tone_C)
         );
 
     noise #(.PERIOD_BITS(5)) noise_generator (
-        .clk(clk_16),
+        .clk(clk_8),
         .reset(reset),
         .period(noise_period),
         .out(noise)
