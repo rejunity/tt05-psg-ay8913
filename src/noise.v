@@ -14,7 +14,15 @@
 //  - the cycle is 131070 iterations before LFSR reaches 1 again
 //
 //  lfsr = 1
-//  for x in range(65535*16): lfsr = lfsr >> 1 | (((lfsr&1) ^ ((lfsr>>3)&1))<<16); print (lfsr,x) if lfsr <= 1 else None
+//  for x in range(65536*16): lfsr = lfsr >> 1 | (((lfsr&1) ^ ((lfsr>>3)&1))<<16); print (lfsr,x) if lfsr <= 1 else None
+//
+// The following Python code measures randomness of LFSR
+//  - 0/1 are distributed equally
+//  - flips occur 50% of time - the same as when using rand()%1. NOTE that this effectively halves the frequency.
+//
+//  flips = 0; ones = 0; lfsr = 1
+//  for x in range(65536*16): last = lfsr&1; lfsr = lfsr >> 1 | (((lfsr&1) ^ ((lfsr>>3)&1))<<16); flips += (last != lfsr&1); ones += lfsr&1==1
+//  print(flips/(65536*16), ones/(65536*16))
 
 module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, parameter PERIOD_BITS = 5 ) (
     input  wire clk,
