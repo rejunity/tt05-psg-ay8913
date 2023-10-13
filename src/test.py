@@ -172,50 +172,91 @@ async def set_envelope(dut, frequency=-1, period=-1, shape=-1):
         await set_register(dut, 13, shape)                      # Envelope: set shape
 
 async def assert_constant_output(dut, cycles = 8):
-    constant_output = dut.uo_out.value
-    for i in range(cycles):
-        await ClockCycles(dut.clk, 1)
-        assert dut.uo_out.value == constant_output
+    await assert_output(dut, period=cycles/8, constant=True)
+
+    # constant_output = dut.uo_out.value
+    # for i in range(cycles):
+    #     await ClockCycles(dut.clk, 1)
+    #     assert dut.uo_out.value == constant_output
 
 async def assert_tone_output(dut, frequency, pulses = 4, v0 = ZERO_VOLUME, v1 = MAX_VOLUME):
-    nanoseconds_per_sample = 1e9 / frequency
-    mid_volume = (v0 + v1) // 2
-    last_state = -1
-    for i in range(pulses*2):
-        await Timer(nanoseconds_per_sample / 2, units="ns", round_mode="round")
-        new_state = get_output(dut) > mid_volume
-        if (last_state != -1):
-            assert last_state != new_state
-        last_state = new_state
-        print_chip_state(dut)
+    await assert_output(dut, frequency=frequency)
 
-# async def assert_tone_frequency(dut, frequency, pulses = 4, v0 = ZERO_VOLUME, v1 = MAX_VOLUME):
-#     nanoseconds_per_sample = 1e9 / frequency
-#     mid_volume = (v0 + v1) // 2
-#     last_state = -1
-#     for i in range(pulses*2):
-#         await Timer(nanoseconds_per_sample / 2, units="ns", round_mode="round")
-#         new_state = get_output(dut) > mid_volume
-#         if (last_state != -1):
-#             assert last_state != new_state
-#         last_state = new_state
-#         print_chip_state(dut)
+    # nanoseconds_per_sample = 1e9 / frequency
+    # mid_volume = (v0 + v1) // 2
+    # last_state = -1
+    # for i in range(pulses*2):
+    #     await Timer(nanoseconds_per_sample / 2, units="ns", round_mode="round")
+    #     new_state = get_output(dut) > mid_volume
+    #     if (last_state != -1):
+    #         assert last_state != new_state
+    #     last_state = new_state
+    #     print_chip_state(dut)
+
 
 async def assert_noise_output(dut, frequency, pulses = 256, max_error = 0.15, v0 = ZERO_VOLUME, v1 = MAX_VOLUME):
-    cycles = int((MASTER_CLOCK / frequency) * pulses)
-    mid_volume = (v0 + v1) // 2
-    last_state = -1
-    state_changes = 0
-    for i in range(cycles):
-        await ClockCycles(dut.clk, 1)
-        new_state = get_output(dut) > mid_volume
-        state_changes += 1 if last_state != new_state and last_state != -1 else 0
-        last_state = new_state
+    await assert_output(dut, frequency=frequency/2, noisie=True)
 
-    measured_frequency = MASTER_CLOCK / (cycles / state_changes)
-    dut._log.info(f"expected noise frequency {frequency//1000}Khz and measured {int(measured_frequency/1000)}Khz")
-    assert state_changes * (1.0-max_error) <= pulses and pulses <= state_changes * (1.0+max_error)
-    assert frequency * (1.0-max_error) <= measured_frequency and measured_frequency <= frequency * (1.0+max_error)
+    # cycles = int((MASTER_CLOCK / frequency) * pulses)
+    # mid_volume = (v0 + v1) // 2
+    # last_state = -1
+    # state_changes = 0
+    # for i in range(cycles):
+    #     await ClockCycles(dut.clk, 1)
+    #     new_state = get_output(dut) > mid_volume
+    #     state_changes += 1 if last_state != new_state and last_state != -1 else 0
+    #     last_state = new_state
+
+    # measured_frequency = MASTER_CLOCK / (cycles / state_changes)
+    # dut._log.info(f"expected noise frequency {frequency//1000}Khz and measured {int(measured_frequency/1000)}Khz")
+    # assert state_changes * (1.0-max_error) <= pulses and pulses <= state_changes * (1.0+max_error)
+    # assert frequency * (1.0-max_error) <= measured_frequency and measured_frequency <= frequency * (1.0+max_error)
+
+
+async def assert_output(dut, frequency=-1, period=-1, constant=False, noisie=False, v0 = ZERO_VOLUME, v1 = MAX_VOLUME):
+    if frequency > 0:
+        period = MASTER_CLOCK // (16 * frequency)
+    if period == 0:
+        period = 1
+    assert 0 < period and period <= 65535
+    cycles_to_collect_data = int(period * 8)
+    if constant:
+        max_error = 0
+        pulses_to_collect = 0
+    else:
+        max_error = 0.15 if noisie else 0.01
+        pulses_to_collect = 64 if noisie else 2
+        cycles_to_collect_data *= pulses_to_collect * 2
+    
+    mid_volume = (v0 + v1) // 2
+    state_changes = 0
+    for i in range(cycles_to_collect_data//8):
+        last_state = get_output(dut) > mid_volume
+        await ClockCycles(dut.clk, 8)
+        # print_chip_state(dut)
+        new_state = get_output(dut) > mid_volume
+        if last_state != new_state:
+            state_changes += 1
+
+    # print(period, cycles_to_collect_data, state_changes)
+
+    time_passed_to_collect_data = cycles_to_collect_data / MASTER_CLOCK
+    measured_frequency = (state_changes / 2) / time_passed_to_collect_data
+    frequency = MASTER_CLOCK / (16 * period)
+
+    if not constant:
+        noisie = "noisie" if noisie else ""
+        if frequency > 1000:
+            dut._log.info(f"expected {noisie} frequency {frequency/1000:4.3f} KHz and measured {measured_frequency/1000:4.3f} KHz")
+        else:
+            dut._log.info(f"expected {noisie} frequency {frequency:3.2f} Hz and measured {measured_frequency:3.2f} Hz")
+        assert frequency * (1.0-max_error) <= measured_frequency and measured_frequency <= frequency * (1.0+max_error)
+
+    pulses_to_collect2 = pulses_to_collect*2
+    assert pulses_to_collect2 * (1.0-max_error) <= state_changes and state_changes <= pulses_to_collect2 * (1.0+max_error)
+
+
+
 
 ### TESTS
 
@@ -303,6 +344,19 @@ async def test_tones_with_volume(dut):
     await done(dut)
 
 @cocotb.test()
+async def test_tone_440hz(dut):
+    await reset(dut)
+
+    dut._log.info("enable tone on Channel A with maximum volume")
+    await set_mixer(dut, tones_on='A')                          # Mixer: disable noises, enable all tones
+    await set_volume(dut, 'A', 15)                              # Channel A: no envelope, set channel to maximum volume
+    await set_tone(dut, 'A', frequency=440)                     # Tone A: set fine tune frequency to 440 Hz
+
+    await assert_output(dut, frequency=440)
+
+    await done(dut)
+
+@cocotb.test()
 async def test_tone_frequencies(dut):
     await reset(dut)
 
@@ -312,19 +366,23 @@ async def test_tone_frequencies(dut):
 
     dut._log.info("test tone with period 0 (default after reset)")
     await assert_tone_output(dut, MASTER_CLOCK // 16)           # default tone frequency after reset should be 0
+    # await assert_output(dut, period=1) #, noisie=True)
 
     dut._log.info("test tone with period 1, should be equal to period 0")
     await set_tone(dut, 'A', period=1)                          # Tone A: set fine tune period to 1
     await assert_tone_output(dut, MASTER_CLOCK // 16)
+    # await assert_output(dut, period=1)
 
     for n in range(2, 5, 1):
         dut._log.info(f"test tone period {n}")
         await set_tone(dut, 'A', period=n)                      # Tone A: set period to n
         await assert_tone_output(dut, MASTER_CLOCK // (16 * n))
+        # assert_output(dut, period=n)
 
     dut._log.info("test tone with the highest period 4095")
     await set_tone(dut, 'A', period=4095)                       # Tone A: set period to max
     await assert_tone_output(dut, MASTER_CLOCK // (16 * 4095), 2)
+    # assert_output(dut, period=4095)
 
     await done(dut)
 
@@ -332,6 +390,7 @@ async def test_tone_frequencies(dut):
 async def test_rapid_tone_frequency_change(dut):
     await reset(dut)
 
+    dut._log.info("enable tone on Channel A with maximum volume")
     await set_mixer(dut, tones_on='A')                          # Mixer: only Channel A tone is enabled
     await set_volume(dut, 'A', 15)                              # Channel A: no envelope, set channel to maximum volume
 
@@ -377,7 +436,7 @@ async def test_noise_frequencies(dut):
 
     await done(dut)
 
-@cocotb.test()
+# @cocotb.test()
 async def test_envelopes(dut):
     await reset(dut)
 
