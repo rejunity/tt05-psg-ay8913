@@ -11,6 +11,7 @@ def print_chip_state(dut):
     try:
         internal = dut.tt_um_rejunity_ay8913_uut
         print(
+            dut.ui_in.value, ">||"
             '{:2d}'.format(int(internal.latched_register.value)), 
             ("A" if internal.active    == 1 else ".") +
             ("L" if internal.latch    == 1 else ".") +
@@ -76,6 +77,8 @@ async def set_register(dut, reg, val):
     dut.uio_in.value =       0b000000_00 # Inactivate: disable writes and trigger envelope restart, if last write was to Envelope register
     dut.ui_in.value  = 0
     await ClockCycles(dut.clk, 1)
+    print_chip_state(dut)
+
 
 def get_output(dut):
     return int(dut.uo_out.value)
@@ -88,19 +91,85 @@ async def record_amplitude_table(dut):
         amplitudes.append(get_output(dut))
     return amplitudes
 
-async def set_tone_frequency(dut, channel, frequency):
-    period = MASTER_CLOCK // (16 * frequency)
-    await set_tone_period(dut, channel, period)
+def channel_index(channel):
+    if channel == 'A' or channel == 'a':
+        channel = 0
+    elif channel == 'B' or channel == 'b':
+        channel = 1
+    elif channel == 'C' or channel == 'c':
+        channel = 2
+    assert 0 <= channel and channel <= 2
+    return channel
 
-async def set_tone_period(dut, channel, period):
-    await set_register(dut, channel*2+0, period & 0xFF)     # Tone A/B/C: set fine tune period
+def inverted_channel_mask(channels):
+    mask = 0
+    if isinstance(channels, str):
+        mask |= 1 if 'A' in channels or 'a' in channels else 0
+        mask |= 2 if 'B' in channels or 'b' in channels else 0
+        mask |= 4 if 'C' in channels or 'c' in channels else 0
+    else:
+        mask = channels
+    assert 0 <= mask and mask <= 7
+    return ~mask & 7
+
+async def set_tone(dut, channel, frequency=-1, period=-1):
+    channel = channel_index(channel)
+    if frequency > 0:
+        period = MASTER_CLOCK // (16 * frequency)
+    assert 0 <= period  and period <= 4095
+    await set_register(dut, channel*2+0, period & 0xFF)         # Tone A/B/C: set fine tune period
     if period > 0xFF:
-        await set_register(dut, channel*2+1, )              # Tone A/B/C: set coarse tune period
+        await set_register(dut, channel*2+1, period >> 8)       # Tone A/B/C: set coarse tune period
 
-# async def set_noise_frequency(dut, frequency):
+async def set_noise(dut, frequency=-1, period=-1):
+    if frequency > 0:
+        period = MASTER_CLOCK // (16 * frequency)
+    assert 0 <= period and period <= 31
+    await set_register(dut, 6, period & 31)                     # Noise: set period
 
-# async def set_noise_period(dut, frequency):
-    
+async def set_mixer(dut, noises_on=0b000, tones_on=0b000):
+    await set_register(dut, 7, (inverted_channel_mask(noises_on) << 3) | inverted_channel_mask(tones_on))
+
+async def set_mixer_off(dut):
+    await set_mixer(dut, noises_on=0, tones_on=0)
+
+async def set_volume(dut, channel, vol=0, envelope=False):
+    channel = channel_index(channel)
+    if vol < 0:
+        envelope = True
+        vol = 0
+    assert 0 <= channel and channel <= 2
+    assert 0 <= vol     and vol <= 15
+    await set_register(dut, 8+channel, (16 if envelope else 0) | vol)
+
+async def set_envelope(dut, frequency=-1, period=-1, shape=-1):
+    if frequency > 0:
+        period = MASTER_CLOCK // (256 * frequency)
+    if period >= 0:
+        assert 0 <= period  and period <= 65535
+        await set_register(dut, 11, period & 0xFF)              # Envelope: set fine tune period
+        if period > 0xFF:
+            await set_register(dut, 12, period // 0xFF)         # Envelope: set coarse tune period
+    if isinstance(shape, str):
+        shape ={r"\_ ": 0,
+                r"\_ ": 1,
+                r"\_ ": 2,
+                r"\_ ": 3,
+                r"/_ ": 4,
+                r"/_ ": 5,
+                r"/_ ": 6,
+                r"/_ ": 7,
+                r"\\ ": 8,
+                r"\_ ": 9,
+                r"\/ ":10,
+                r"\` ":11,
+                r"// ":12,
+                r"/` ":13,
+                r"/\ ":14,
+                r"/_ ":15}[shape[:2]+' ']
+    if shape >= 0:
+        assert 0 <= shape and shape <= 15
+        await set_register(dut, 13, shape)                      # Envelope: set shape
 
 async def assert_constant_output(dut, cycles = 8):
     constant_output = dut.uo_out.value
@@ -151,30 +220,28 @@ async def assert_noise_output(dut, frequency, pulses = 256, max_error = 0.15, v0
 ### TESTS
 
 @cocotb.test()
-async def test_silence(dut):
+async def test_silence_after_reset(dut):
     await reset(dut)
 
-    dut._log.info("disable tones and noises on all channels ")
-    await set_register(dut,  7, 0b111_111)  # Mixer: disable all tones and noises
-    print_chip_state(dut)
+    # Mixer all noises and tunes are on after reset
+    # Channel A/B/C volume are 0 after reset
 
-    await assert_constant_output(dut, 256)
+    await assert_constant_output(dut, cycles=256)
     assert get_output(dut) <= ZERO_VOLUME
 
     await done(dut)
 
 @cocotb.test()
-async def test_silence_with_zero_volume(dut):
+async def test_silence_with_mixer_off(dut):
     await reset(dut)
 
-    dut._log.info("set volume to 0 on all channels")
-    await set_register(dut,  8, 0b0_0000)   # Channel A: disable envelope, set channel volume to 0
-    await set_register(dut,  9, 0b0_0000)   # Channel B: -- // --
-    await set_register(dut, 10, 0b0_0000)   # Channel C: -- // --
+    # Mixer all noises and tunes are on after reset
+    # Channel A/B/C volume are 0 after reset
 
-    print_chip_state(dut)
+    dut._log.info("disable tones and noises on all channels ")
+    await set_mixer_off(dut)                                    # Mixer: disable all tones and noises, channels are controller by volume alone
 
-    await assert_constant_output(dut, 256)
+    await assert_constant_output(dut, cycles=256)
     assert get_output(dut) <= ZERO_VOLUME
 
     await done(dut)
@@ -183,18 +250,18 @@ async def test_silence_with_zero_volume(dut):
 async def test_direct_channel_outputs_with_tones_and_noises_disabled(dut):
     await reset(dut)
 
-    dut._log.info("disable tones and noises on all channels ")
-    await set_register(dut,  7, 0b111_111)      # Mixer: disable all tones and noises
+    dut._log.info("disable tones and noises on all channels")
+    await set_mixer_off(dut)                                    # Mixer: disable all tones and noises, channels are controller by volume alone
 
     for chan in range(3):
-        await set_register(dut,  8, 0b0_0000)   # Channel A: disable envelope, set channel A to "fixed" level controlled by 4 LSB bits
-        await set_register(dut,  9, 0b0_0000)   # Channel B: -- // --
-        await set_register(dut, 10, 0b0_0000)   # Channel C: -- // --
+        await set_volume(dut, 'A', 0)                           # Channel A: no envelope, set channel A to "fixed" level controlled by volume
+        await set_volume(dut, 'B', 0)                           # Channel B: -- // --
+        await set_volume(dut, 'C', 0)                           # Channel C: -- // --
 
         # validate that volume increases with every step
         prev_volume = -1
         for vol in range(16):
-            await set_register(dut, 8+chan, vol) # Channel A/B/C: disable envelope, set volume
+            await set_volume(dut, chan, vol)                    # Channel A/B/C: set volume
             await assert_constant_output(dut)
             assert get_output(dut) > prev_volume or (get_output(dut) >= prev_volume and prev_volume < ZERO_VOLUME * 1.1)
             prev_volume = get_output(dut)
@@ -205,18 +272,16 @@ async def test_direct_channel_outputs_with_tones_and_noises_disabled(dut):
 async def test_tones_with_mixer(dut):
     await reset(dut)
 
-    for chan, mixer in enumerate(  [0b111_110, \
-                                    0b111_101, \
-                                    0b111_011]):
-        dut._log.info(f"Tone on Channel {chan} mixer: {mixer}")
-        await set_register(dut,  7, mixer)          # Mixer: only one of Channels A/B/C tone is enabled
-        await set_register(dut,  8+chan, 0b0_1111)  # Channel A/B/C: set volume to max
-        await assert_tone_output(dut, MASTER_CLOCK // 16) # default tone frequency after reset should be 0
+    for chan in ['A', 'B', 'C']:
+        dut._log.info(f"Tone on Channel {chan}")
+        await set_mixer(dut, tones_on = chan)                   # Mixer: only one of Channels A/B/C tone is enabled
+        await set_volume(dut, chan, 15)                         # Channel A/B/C: set volume to max
+        await assert_tone_output(dut, MASTER_CLOCK // 16)       # default tone frequency after reset should be 0
         
         dut._log.info("Silence")
-        await set_register(dut,  7, 0b111_111)      # Mixer: disable all tones
-        await assert_constant_output(dut, 256)      # expect silence
-        await set_register(dut,  8+chan, 0b0_0000)  # Channel A/B/C: set volume to 0
+        await set_mixer_off(dut)                                # Mixer: disable all tones
+        await assert_constant_output(dut, cycles=256)
+        await set_volume(dut, chan, 0)                          # Channel A/B/C: set volume to 0
 
     await done(dut)
 
@@ -224,16 +289,16 @@ async def test_tones_with_mixer(dut):
 async def test_tones_with_volume(dut):
     await reset(dut)
 
-    await set_register(dut,  7, 0b111_000)  # Mixer: disable noises
+    await set_mixer(dut, tones_on='ABC')                        # Mixer: disable noises, enable all tones
 
-    for chan in range(3):
+    for chan in ['A', 'B', 'C']:
         dut._log.info(f"Tone on Channel {chan}")
-        await set_register(dut,  8+chan, 0b0_1111)  # Channel A/B/C: set volume to max
-        await assert_tone_output(dut, MASTER_CLOCK // 16) # default tone frequency after reset should be 0
+        await set_volume(dut, chan, 15)                         # Channel A/B/C: set volume to max
+        await assert_tone_output(dut, MASTER_CLOCK // 16)       # default tone frequency after reset should be 0
         
         dut._log.info("Silence")
-        await set_register(dut,  8+chan, 0b0_0000)  # Channel A/B/C: set volume to 0
-        await assert_constant_output(dut, 256)      # expect silence
+        await set_volume(dut, chan, 0)                          # Channel A/B/C: set volume to 0
+        await assert_constant_output(dut, 256)
 
     await done(dut)
 
@@ -242,28 +307,23 @@ async def test_tone_frequencies(dut):
     await reset(dut)
 
     dut._log.info("enable tone on Channel A with maximum volume")
-    await set_register(dut,  7, 0b111_110)  # Mixer: only Channel A tone is enabled
-    await set_register(dut,  8, 0b0_1111)   # Channel A: disable envelope, set channel to maximum volume
+    await set_mixer(dut, tones_on='A')                          # Mixer: only Channel A tone is enabled
+    await set_volume(dut, 'A', 15)                              # Channel A: no envelope, set channel to maximum volume
 
     dut._log.info("test tone with period 0 (default after reset)")
-    print_chip_state(dut)
-    await assert_tone_output(dut, MASTER_CLOCK // 16) # default tone frequency after reset should be 0
+    await assert_tone_output(dut, MASTER_CLOCK // 16)           # default tone frequency after reset should be 0
 
     dut._log.info("test tone with period 1, should be equal to period 0")
-    await set_register(dut,  0, 1)          # Tone A: set fine tune period to 1
-    print_chip_state(dut)
+    await set_tone(dut, 'A', period=1)                          # Tone A: set fine tune period to 1
     await assert_tone_output(dut, MASTER_CLOCK // 16)
 
     for n in range(2, 5, 1):
-        dut._log.info(f"test tone {n}")
-        await set_register(dut,  0, n)      # Tone A: set fine tune period to n
-        print_chip_state(dut)
+        dut._log.info(f"test tone period {n}")
+        await set_tone(dut, 'A', period=n)                      # Tone A: set period to n
         await assert_tone_output(dut, MASTER_CLOCK // (16 * n))
 
     dut._log.info("test tone with the highest period 4095")
-    await set_register(dut,  0, 0b1111_1111)          # Tone A: set fine tune period to max
-    await set_register(dut,  1, 0b0000_1111)          # Tone A: set coarse period to max
-    print_chip_state(dut)
+    await set_tone(dut, 'A', period=4095)                       # Tone A: set period to max
     await assert_tone_output(dut, MASTER_CLOCK // (16 * 4095), 2)
 
     await done(dut)
@@ -272,28 +332,25 @@ async def test_tone_frequencies(dut):
 async def test_rapid_tone_frequency_change(dut):
     await reset(dut)
 
-    await set_register(dut,  7, 0b111_000)  # Mixer: disable noises
-    await set_register(dut,  8, 0b0_1111)   # Channel A: disable envelope, set maximum volume
+    await set_mixer(dut, tones_on='A')                          # Mixer: only Channel A tone is enabled
+    await set_volume(dut, 'A', 15)                              # Channel A: no envelope, set channel to maximum volume
 
     dut._log.info("set tone with the highest period 4095")
-    await set_register(dut,  0, 0b1111_1111) # Tone A: set fine tune period to max
-    await set_register(dut,  1, 0b0000_1111) # Tone A: set coarse period to max
-    print_chip_state(dut)
+    await set_tone(dut, 'A', period=4095)                       # Tone A: set period to max
 
-    dut._log.info("wait just a bit, much shorter than current tone period")
+    dut._log.info("wait just a bit, much shorter than the current tone period")
     await ClockCycles(dut.clk, 512)
 
     dut._log.info("quickly change tone period to 255")
-    await set_register(dut,  1, 0b0000_0000) # Tone A: set coarse period to 0, fine period is still 255
+    await set_register(dut,  1, 0b0000_0000)                    # Tone A: set coarse period to 0, fine period is still 255
     await assert_tone_output(dut, MASTER_CLOCK // (16 * 255))
 
-    dut._log.info("wait just a bit, much shorter than current tone period")
+    dut._log.info("wait just a bit, much shorter than the current tone period")
     await ClockCycles(dut.clk, 512)
 
     for n in range(10, 0, -1):
-        dut._log.info(f"test tone {n}")
-        await set_register(dut,  0, n)      # Tone A: set fine tune period to n
-        print_chip_state(dut)
+        dut._log.info(f"test tone period {n}")
+        await set_tone(dut, 'A', period=n)                      # Tone A: set fine tune period to n
         await assert_tone_output(dut, MASTER_CLOCK // (16 * n))
 
     await done(dut)
@@ -303,22 +360,19 @@ async def test_noise_frequencies(dut):
     await reset(dut)
 
     dut._log.info("enable noise on Channel A with maximum volume")
-    await set_register(dut,  7, 0b110_111)  # Mixer: only Channel A tone is enabled
-    await set_register(dut,  8, 0b0_1111)   # Channel A: disable envelope, set channel to maximum volume
+    await set_mixer(dut, noises_on='A')                         # Mixer: only noise on Channel A is enabled
+    await set_volume(dut, 'A', 15)                              # Channel A: no envelope, set channel to maximum volume
 
     dut._log.info("test noise with period 0 (default after reset)")
-    print_chip_state(dut)
     await assert_noise_output(dut, MASTER_CLOCK // 16) # default noise frequency after reset should be 0
 
     for n in range(1, 8, 1):
-        dut._log.info(f"test noise {n}")
-        await set_register(dut,  6, n)      # Noise: set period to n
-        print_chip_state(dut)
+        dut._log.info(f"test noise period {n}")
+        await set_noise(dut, period=n)                          # Noise: set period to n
         await assert_noise_output(dut, MASTER_CLOCK // (16 * n))
 
     dut._log.info("test noise with the highest period 31")
-    await set_register(dut,  6, 0b0001_1111) # Noise: set period to 31
-    print_chip_state(dut)
+    await set_noise(dut, period=31)                             # Noise: set period to max
     await assert_noise_output(dut, MASTER_CLOCK // (16 * 31))
 
     await done(dut)
@@ -332,12 +386,12 @@ async def test_envelopes(dut):
     print(amplitudes)
 
     dut._log.info("route envelope value directly to the Channel A output")
-    await set_register(dut,  7, 0b111_111)  # Mixer: disable all tones and noises
-    await set_register(dut,  8, 0b1_0000)   # Channel A: set channel A to envelope mode
+    await set_mixer_off(dut)                                    # Mixer: disable all tones and noises
+    await set_volume(dut, 'A', envelope=True)                   # Channel A: set channel A to envelope mode
 
     envelopes_0 =  [r"\___ "] * 4 + \
-                   [r"/___ "] * 4           # envelopes with "continue" flag = 0
-    envelopes_1 =  [r"\\\\ ",               # envelopes with "continue" flag = 1
+                   [r"/___ "] * 4   # envelopes with "Continue" flag = 0
+    envelopes_1 =  [r"\\\\ ",       # envelopes with "Continue" flag = 1
                     r"\___ ",
                     r"\/\/ ",
                     r"\``` ",
@@ -354,7 +408,7 @@ async def test_envelopes(dut):
     async def sweep_envelopes(envelopes):
         for n, envelope in enumerate(envelopes):
             dut._log.info(f"check envelope {n} pattern: {envelope}")
-            await set_register(dut, 13, n)  # Envelope: set shape
+            await set_envelope(dut, shape=n)                            # Envelope: set shape
             print_chip_state(dut)
             await ClockCycles(dut.clk, 1)
             print_chip_state(dut)
