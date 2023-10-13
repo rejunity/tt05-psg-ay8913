@@ -272,9 +272,9 @@ async def test_direct_channel_outputs_with_tones_and_noises_disabled(dut):
 async def test_tones_with_mixer(dut):
     await reset(dut)
 
-    for chan in ['A', 'B', 'C']:
+    for chan in 'ABC':
         dut._log.info(f"Tone on Channel {chan}")
-        await set_mixer(dut, tones_on = chan)                   # Mixer: only one of Channels A/B/C tone is enabled
+        await set_mixer(dut, tones_on=chan)                     # Mixer: only one of Channels A/B/C tone is enabled
         await set_volume(dut, chan, 15)                         # Channel A/B/C: set volume to max
         await assert_tone_output(dut, MASTER_CLOCK // 16)       # default tone frequency after reset should be 0
         
@@ -291,7 +291,7 @@ async def test_tones_with_volume(dut):
 
     await set_mixer(dut, tones_on='ABC')                        # Mixer: disable noises, enable all tones
 
-    for chan in ['A', 'B', 'C']:
+    for chan in 'ABC':
         dut._log.info(f"Tone on Channel {chan}")
         await set_volume(dut, chan, 15)                         # Channel A/B/C: set volume to max
         await assert_tone_output(dut, MASTER_CLOCK // 16)       # default tone frequency after reset should be 0
