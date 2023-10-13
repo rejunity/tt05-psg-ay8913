@@ -30,16 +30,13 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
         .period(period),
         .out(trigger));
 
-    wire trigger_posedge;
-    signal_edge trigger_edge(
+    wire trigger_edge;
+    signal_edge signal_edge(
         .clk(clk),
         .reset(reset),
         .signal(trigger),
-        .on_posedge(trigger_posedge)
+        .on_edge(trigger_edge)
     );
-
-    // reg previous_trigger;
-    // wire trigger_edge = (previous_trigger != trigger && trigger);
 
     reg [LFSR_BITS-1:0] lfsr;
     wire is_lfsr_zero = (lfsr == 0); // more readable, but equivalent to the hardware implementation ~(|lfsr)
@@ -49,7 +46,7 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
         if (reset)
             lfsr <= 0;
         else
-            if (trigger_posedge)
+            if (trigger_edge)
                 lfsr <= {lfsr_shift_in, lfsr[LFSR_BITS-1:1]};
     end
 
