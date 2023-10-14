@@ -455,7 +455,7 @@ async def test_noise_frequencies(dut):
 
     await done(dut)
 
-# @cocotb.test()
+@cocotb.test()
 async def test_envelopes(dut):
     await reset(dut)
 
