@@ -67,8 +67,8 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
     input  wire [CONTROL_BITS-1:0] control,
     output reg  [VOLUME_BITS-1:0] out
 );
-    localparam MAX_VOLUME = {VOLUME_BITS{1'b1}};
-    `define ATLEAST1(i) (i>0 ? i : 1)
+    real MAX_VOLUME = (1 << VOLUME_BITS) - 1.0; // {VOLUME_BITS{1'b1}};
+    `define ATLEAST1(i) (i>1 ? $rtoi(i) : 1)
     always @(*) begin
         case(in ? control : 0)
 
@@ -127,7 +127,7 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
 
             // YM2149, numbers from the manual, every 2nd step is taken
             // YM2149 32 steps: 1V, .841, .707, .595, .5, .42, .354, .297, .25, .21, .177, .149, .125
-            15: out =           MAX_VOLUME;
+            15: out = `ATLEAST1(MAX_VOLUME * 1.0  );
             14: out = `ATLEAST1(MAX_VOLUME * 0.707);
             13: out = `ATLEAST1(MAX_VOLUME * 0.5  );
             12: out = `ATLEAST1(MAX_VOLUME * 0.354);

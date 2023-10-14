@@ -257,12 +257,15 @@ async def test_output_amplitudes(dut):
 
     dut._log.info("disable tones and noises on all channels")
     await set_mixer_off(dut)                                    # Mixer: disable all tones and noises, channels are controller by volume alone
+    await set_volume(dut, 'A', 0)                               # Channel A: no envelope, set channel A to "fixed" level controlled by volume
+    await set_volume(dut, 'B', 0)                               # Channel B: -- // --
+    await set_volume(dut, 'C', 0)                               # Channel C: -- // --
 
-    for chan in range(3):
-        await set_volume(dut, 'A', 0)                           # Channel A: no envelope, set channel A to "fixed" level controlled by volume
-        await set_volume(dut, 'B', 0)                           # Channel B: -- // --
-        await set_volume(dut, 'C', 0)                           # Channel C: -- // --
+    dut._log.info("record output amplitudes")
+    amplitudes = await record_amplitude_table(dut)
+    dut._log.info(f"output amplitudes are: {amplitudes}")
 
+    for chan in 'ABC':
         # validate that volume increases with every step
         prev_volume = -1
         for vol in range(16):
@@ -271,9 +274,7 @@ async def test_output_amplitudes(dut):
             assert get_output(dut) > prev_volume or (prev_volume == get_output(dut) and vol < 4)
             prev_volume = get_output(dut)
 
-    dut._log.info("record output amplitudes")
-    amplitudes = await record_amplitude_table(dut)
-    dut._log.info(f"output amplitudes are: {amplitudes}")
+        await set_volume(dut, chan, 0)                           # Channel A: set volume back to 0
 
     await done(dut)
 
