@@ -67,8 +67,8 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
     input  wire [CONTROL_BITS-1:0] control,
     output reg  [VOLUME_BITS-1:0] out
 );
-    real MAX_VOLUME = (1 << VOLUME_BITS) - 1.0; // {VOLUME_BITS{1'b1}};
-    `define ATLEAST1(i) (i>1 ? $rtoi(i) : 1)
+    localparam MAX_VOLUME = {VOLUME_BITS{1'b1}};
+    `define ATLEAST1(i) ($rtoi(i)>1 ? $rtoi(i) : 1)
     always @(*) begin
         case(in ? control : 0)
 
