@@ -56,6 +56,8 @@ async def reset(dut):
     clock = Clock(dut.clk, cycle_in_nanoseconds, units="ns")
     cocotb.start_soon(clock.start())
 
+    dut.uio_in.value =       0b1111_1111 # Emulate pull-ups on BIDIRECTIONAL pins
+
     dut._log.info("reset")
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 10)
@@ -78,7 +80,6 @@ async def set_register(dut, reg, val):
     dut.ui_in.value  = 0
     await ClockCycles(dut.clk, 1)
     print_chip_state(dut)
-
 
 def get_output(dut):
     return int(dut.uo_out.value)
@@ -229,7 +230,6 @@ async def test_silence_after_reset(dut):
 
     # Mixer all noises and tunes are on after reset
     # Channel A/B/C volume are 0 after reset
-    await ClockCycles(dut.clk, 2)                               # Wait for output to stabilise after reset
 
     await assert_constant_output(dut, cycles=256)
     assert get_output(dut) <= ZERO_VOLUME
