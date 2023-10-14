@@ -268,7 +268,7 @@ async def test_output_amplitudes(dut):
         for vol in range(16):
             await set_volume(dut, chan, vol)                    # Channel A/B/C: set volume
             await assert_constant_output(dut)
-            assert get_output(dut) > prev_volume or (get_output(dut) >= prev_volume and prev_volume < ZERO_VOLUME * 1.1)
+            assert get_output(dut) > prev_volume or (prev_volume == get_output(dut) and prev_volume < ZERO_VOLUME * 1.1)
             prev_volume = get_output(dut)
 
     dut._log.info("record output amplitudes")
