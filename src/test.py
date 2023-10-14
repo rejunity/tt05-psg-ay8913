@@ -252,7 +252,7 @@ async def test_silence_with_mixer_off(dut):
     await done(dut)
 
 @cocotb.test()
-async def test_direct_channel_outputs_with_tones_and_noises_disabled(dut):
+async def test_output_amplitudes(dut):
     await reset(dut)
 
     dut._log.info("disable tones and noises on all channels")
@@ -270,6 +270,10 @@ async def test_direct_channel_outputs_with_tones_and_noises_disabled(dut):
             await assert_constant_output(dut)
             assert get_output(dut) > prev_volume or (get_output(dut) >= prev_volume and prev_volume < ZERO_VOLUME * 1.1)
             prev_volume = get_output(dut)
+
+    dut._log.info("record output amplitudes")
+    amplitudes = await record_amplitude_table(dut)
+    dut._log.info(f"output amplitudes are: {amplitudes}")
 
     await done(dut)
 
@@ -461,7 +465,7 @@ async def test_envelopes(dut):
 
     dut._log.info("record amplitude table from Channel A")
     amplitudes = await record_amplitude_table(dut)
-    print(amplitudes)
+    print("recorded amplitude table:", amplitudes)
 
     dut._log.info("route envelope value directly to the Channel A output")
     await set_mixer_off(dut)                                    # Mixer: disable all tones and noises
