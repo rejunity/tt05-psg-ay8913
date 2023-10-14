@@ -47,7 +47,7 @@ def print_chip_state(dut):
             # '{:3d}'.format(int(dut.uo_out.value >> 1)),
                         # "@" if dut.uo_out[0].value == 1 else ".")
     except:
-        print(dut.uo_out.value)
+        print(dut.uio_in.value, dut.ui_in.value, ">", dut.uo_out.value)
 
 async def reset(dut):
     master_clock = MASTER_CLOCK # // 8
@@ -268,7 +268,7 @@ async def test_output_amplitudes(dut):
         for vol in range(16):
             await set_volume(dut, chan, vol)                    # Channel A/B/C: set volume
             await assert_constant_output(dut)
-            assert get_output(dut) > prev_volume or (prev_volume == get_output(dut) and prev_volume < ZERO_VOLUME * 1.1)
+            assert get_output(dut) > prev_volume or (prev_volume == get_output(dut) and vol < 4)
             prev_volume = get_output(dut)
 
     dut._log.info("record output amplitudes")
