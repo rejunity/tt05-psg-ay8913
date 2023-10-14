@@ -67,13 +67,13 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
     input  wire [CONTROL_BITS-1:0] control,
     output reg  [VOLUME_BITS-1:0] out
 );
-    localparam real MAX_VOLUME = (1 << VOLUME_BITS) - 1; //{VOLUME_BITS{1'b1}};
+    localparam real MAX_VOLUME = (1 << VOLUME_BITS) - 1;
     `define ATLEAST1(i) ($rtoi(i)>1 ? $rtoi(i) : 1)
     always @(*) begin
         case(in ? control : 0)
 
             // // https://github.com/lvd2/ay-3-8910_reverse_engineered/blob/master/rtl/render/aytab.v
-            // 0:  out =           0;
+            // 0:  out =                        0;
             // 1:  out = `ATLEAST1(MAX_VOLUME * 0.010009918364233);
             // 2:  out = `ATLEAST1(MAX_VOLUME * 0.014404516670481);
             // 3:  out = `ATLEAST1(MAX_VOLUME * 0.021054242215592);
@@ -88,8 +88,7 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
             // 12: out = `ATLEAST1(MAX_VOLUME * 0.493795424986612);
             // 13: out = `ATLEAST1(MAX_VOLUME * 0.637013235406625);
             // 14: out = `ATLEAST1(MAX_VOLUME * 0.807895340830847);
-            // 15: out =          MAX_VOLUME;
-
+            // 15: out = `ATLEAST1(MAX_VOLUME * 1.0);
 
             //  0: out = 12'h000;
             //  1: out = 12'h029;
@@ -142,10 +141,10 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
             3:  out = `ATLEAST1(MAX_VOLUME * 0.016);
             2:  out = `ATLEAST1(MAX_VOLUME * 0.012);
             1:  out = `ATLEAST1(MAX_VOLUME * 0.008);
-            0:  out =           0;
+            0:  out =                        0;
 
             // Somewhat weird numbers from the original AY-3-8190 documentation
-            // 15: out =           MAX_VOLUME;
+            // 15: out = `ATLEAST1(MAX_VOLUME * 1.0);
             // 14: out = `ATLEAST1(MAX_VOLUME * 0.707);
             // 13: out = `ATLEAST1(MAX_VOLUME * 0.5);
             // 12: out = `ATLEAST1(MAX_VOLUME * 0.303);
@@ -160,6 +159,7 @@ module attenuation #( parameter CONTROL_BITS = 4, parameter VOLUME_BITS = 15 ) (
             // 3:  out = `ATLEAST1(MAX_VOLUME * 0.015625);
             // 2:  out = `ATLEAST1(MAX_VOLUME * 0.00946875);
             // 1:  out = `ATLEAST1(MAX_VOLUME * 0.0078125);
+            // 1:  out =                        0;
         endcase
         `undef ATLEAST1
     end
