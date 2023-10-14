@@ -266,6 +266,7 @@ async def test_silence_after_reset(dut):
 
     # Mixer all noises and tunes are on after reset
     # Channel A/B/C volume are 0 after reset
+    await ClockCycles(dut.clk, 2)                               # Wait for output to stabilise after reset
 
     await assert_constant_output(dut, cycles=256)
     assert get_output(dut) <= ZERO_VOLUME
