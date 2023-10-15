@@ -33,6 +33,7 @@ Implementations
 * https://github.com/jotego/jt49
 * https://opencores.org/projects/sqmusic
 * https://github.com/mamedev/mame/blob/master/src/devices/sound/ay8910.cpp
+* https://github.com/arnaud-carre/sndh-player/blob/main/AtariAudio/ym2149c.cpp
 
 Music playback!
 * http://antarctica.no/stuff/atari/YM2/Misc.Games/ Music from several Atari ST games in YM format
