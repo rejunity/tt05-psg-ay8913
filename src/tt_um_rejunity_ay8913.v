@@ -211,6 +211,11 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(volume_C)
         );
 
+    // @TODO: 0 as double the rate of the envelope
+    // @TODO: correct timing of the envelopes, test to validate envelope frequency
+    // @TODO: master volume mixing
+    // @TODO: global PWM, per channel PWMs
+
     wire [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
     assign uo_out[7:0] = master;
 
