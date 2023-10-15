@@ -147,10 +147,10 @@ async def set_envelope(dut, frequency=-1, period=-1, shape=-1):
     if frequency > 0:
         period = MASTER_CLOCK // (256 * frequency)
     if period >= 0:
-        assert 0 <= period  and period <= 65535
-        await set_register(dut, 11, period & 0xFF)              # Envelope: set fine tune period
+        assert 0 <= period and period <= 65535
+        await set_register(dut, 11, period & 0xFF)          # Envelope: set fine tune period
         if period > 0xFF:
-            await set_register(dut, 12, period // 0xFF)         # Envelope: set coarse tune period
+            await set_register(dut, 12, period >> 8)        # Envelope: set coarse tune period
     if isinstance(shape, str):
         shape ={r"\_ ": 0,
                 r"\_ ": 1,
@@ -180,7 +180,7 @@ async def assert_output(dut, frequency=-1, period=-1, constant=False, noise=Fals
     if noise: # NOTE: noise effectively produces signal at half the frequency of the timer due to 50% probability that consecutive samples will be equal
         frequency=frequency/2
         period=period*2
-    assert 0 < period and period <= 65535
+    assert 0 < period #and period <= 65535
     cycles_to_collect_data = int(period * 8)
     if constant:
         max_error = 0
@@ -461,6 +461,72 @@ async def test_noise_frequencies(dut):
     await done(dut)
 
 @cocotb.test()
+async def test_envelopes_with_default_frequency(dut):
+    await reset(dut)
+
+    dut._log.info("route envelope value directly to the Channel A output")
+    await set_mixer_off(dut)                                    # Mixer: disable all tones and noises
+    await set_volume(dut, 'A', envelope=True)                   # Channel A: set channel A to envelope mode
+
+    await set_envelope(dut, shape=r"/\/\ ")                     # Envelope: set /\/\ shape
+    await assert_output(dut, frequency=7812)
+    await assert_output(dut, period=16)
+
+    await set_envelope(dut, shape=r"//// ")                     # Envelope: set //// shape
+    await assert_output(dut, frequency=7812*2)
+
+    await set_envelope(dut, shape=r"\/\/ ")                     # Envelope: set /\/\ shape
+    await assert_output(dut, frequency=7812)
+    await assert_output(dut, period=16)
+
+    await set_envelope(dut, shape=r"\\\\ ")                     # Envelope: set //// shape
+    await assert_output(dut, frequency=7812*2)
+
+    await done(dut)
+
+
+@cocotb.test()
+async def test_envelope_frequency(dut):
+    await reset(dut)
+
+    dut._log.info("route envelope value directly to the Channel A output")
+    await set_mixer_off(dut)                                    # Mixer: disable all tones and noises
+    await set_volume(dut, 'A', envelope=True)                   # Channel A: set channel A to envelope mode
+
+    for shape, mult in [(r"/\/\ ", 1),
+                        (r"\/\/ ", 1),
+                        (r"\\\\ ", 2),
+                        (r"//// ", 2)]:
+        for n in range(0, 8, 1):
+            dut._log.info(f"test envelope period {n} with shape {shape}")
+
+            if n == 0:
+                n = 1
+
+            await set_envelope(dut, shape=shape, period=n)      # Envelope: set /\/\ shape
+            await ClockCycles(dut.clk, 1) # wait for 1 cycle before measuring frequency
+                                          # otherwise shape change triggers envelope restart and messes up with the frequency measurement
+            await assert_output(dut, frequency=7812/n*mult)
+            await assert_output(dut, period=n*16/mult)
+
+    await done(dut)
+
+# TOO SLOW, 0.12 Hz requires almost 10 sec of samples!!!
+# @cocotb.test()
+# async def test_envelope_with_lowest_frequency(dut):
+#     await reset(dut)
+
+#     dut._log.info("route envelope value directly to the Channel A output")
+#     await set_mixer_off(dut)                                    # Mixer: disable all tones and noises
+#     await set_volume(dut, 'A', envelope=True)                   # Channel A: set channel A to envelope mode
+
+#     await set_envelope(dut, shape=r"/\/\ ", period=65535)           # Envelope: set /\/\ shape
+#     await assert_output(dut, frequency=0.12)
+#     await assert_output(dut, period=65535*16)
+
+#     await done(dut)
+
+@cocotb.test()
 async def test_envelopes(dut):
     await reset(dut)
 
@@ -486,12 +552,12 @@ async def test_envelopes(dut):
     async def assert_segment(segment):
         for s in segment:
             assert get_output(dut) == amplitudes[s]
-            await ClockCycles(dut.clk, 16*32)                           # @FIX: should be 8*16 here!!!
+            await ClockCycles(dut.clk, 8)
 
     async def sweep_envelopes(envelopes):
         for n, envelope in enumerate(envelopes):
             dut._log.info(f"check envelope {n} pattern: {envelope}")
-            await set_envelope(dut, shape=n)                            # Envelope: set shape
+            await set_envelope(dut, shape=n)                    # Envelope: set shape
             print_chip_state(dut)
             await ClockCycles(dut.clk, 1)
             print_chip_state(dut)
@@ -508,6 +574,34 @@ async def test_envelopes(dut):
                     await assert_segment([15] * 16)
 
     await sweep_envelopes(envelopes_0 + envelopes_1)
+
+    await done(dut)
+
+@cocotb.test()
+async def test_envelope_restarts(dut):
+    await reset(dut)
+
+    dut._log.info("record amplitude table from Channel A")
+    amplitudes = await record_amplitude_table(dut)
+    print("recorded amplitude table:", amplitudes)
+
+    dut._log.info("route envelope value directly to the Channel A output")
+    await set_mixer_off(dut)                                    # Mixer: disable all tones and noises
+    await set_volume(dut, 'A', envelope=True)                   # Channel A: set channel A to envelope mode
+
+    await set_envelope(dut, shape=0)                            # Envelope: set any shape
+    for shape, restart_volume in [  (r"\___ ", 15),
+                                    (r"/___ ",  0),
+                                    (r"\/\/ ", 15),
+                                    (r"//// ",  0),
+                                    (r"\\\\ ", 15),
+                                    (r"/``` ",  0)]:
+        for delay in range(9, 8*32, 5*8+7):
+            dut._log.info(f"test restart of the envelope with shape {shape} after delaying for {delay} cycles")
+            await ClockCycles(dut.clk, delay)                   # Wait a bit
+            await set_envelope(dut, shape=shape)                # Envelope: set shape, resets the envelope start
+            await ClockCycles(dut.clk, 1)
+            assert get_output(dut) == amplitudes[restart_volume]
 
     await done(dut)
 
