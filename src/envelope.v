@@ -73,24 +73,23 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
         .period(period),
         .out(trigger));
 
-    wire trigger_posedge;
-    signal_edge trigger_edge(
+    wire trigger_edge;
+    signal_edge signal_edge(
         .clk(clk),
         .reset(reset),
         .signal(trigger),
-        .on_posedge(trigger_posedge)
+        .on_edge(trigger_edge)                  // NOTE: assign test_1 = f_env; [see lvd]
     );
 
     reg invert_output;
     reg [ENVELOPE_BITS-1:0] envelope_counter;
     reg stop;
-    // always @(posedge advance_envelope) begin
     always @(posedge clk) begin
         if (reset) begin
             envelope_counter <= 0;
             stop <= 0;
         end else begin
-            if (trigger_posedge)
+            if (trigger_edge)
                 if (!(hold__ && stop))
                     {stop, envelope_counter} <= envelope_counter + 1'b1;
         end
@@ -100,7 +99,7 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
         if (reset)
             invert_output <= !attack__;
         else begin
-            if (trigger_posedge && envelope_counter == MAX_VALUE) // NOTE: envelope_counter == MAX_VALUE is used here instead of 'stop' signal, because 'stop' will take effect only on the next cycle!
+            if (trigger_edge && envelope_counter == MAX_VALUE) // NOTE: envelope_counter == MAX_VALUE is used here instead of 'stop' signal, because 'stop' will take effect only on the next cycle!
                 if (alternate__)
                     invert_output <= ~invert_output;
         end
