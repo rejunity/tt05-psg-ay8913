@@ -49,10 +49,12 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire write = bus_write && active;   // NOTE: chip must be in active state
                                         // in order to accept writes to the register file 
 
-    reg [7:0] clk_counter;
+    reg [2:0] clk_counter;
     wire clk_8   = reset ? clk : clk_counter[2];    // master clock divided by 8 for tunes and noise
-    wire clk_256 = reset | restart_envelope         // BUT pass master clock when reset is asserted, otherwise short resets will be missed by the slow clock
-                         ? clk : clk_counter[7];    // master clock divided by 256 for envelope
+    wire clk_env = reset | restart_envelope         // BUT pass master clock when reset is asserted, otherwise short resets will be missed by the slow clock
+                         ? clk : clk_counter[2];    // master clock for envelope
+                                                    // @TODO: real AY-3-819x strobes clk_8 = ~clk_counter[0] & ~clk_counter[1] & clk_counter[2] instead
+                                                    // which results in 1 clk long pulse every 8 clks!
 
     localparam REGISTERS = 16;
     reg [3:0] latched_register;
@@ -70,7 +72,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             active <= 0;
             restart_envelope <= 0;
         end else begin
-            clk_counter <= clk_counter + 1;                 // provides clk_8 and clk_256 dividers
+            clk_counter <= clk_counter + 1;                 // provides clk_8 and clk_env dividers
 
             if (bus_latch_reg)                              // chip becomes active for subsequent reads/writes
                 active <= cs;                               // IFF cs==1, during the Latch Register Address phase
@@ -162,7 +164,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
 
     wire [3:0] envelope; // NOTE: Y2149 envelope outputs 5 bits, but programmable amplitude is only 4 bits!
     envelope #(.PERIOD_BITS(16), .ENVELOPE_BITS(4)) envelope_generator (
-        .clk(clk_256),
+        .clk(clk_env),
         .reset(reset | restart_envelope),
         .continue_(envelope_continue),
         .attack(envelope_attack),
