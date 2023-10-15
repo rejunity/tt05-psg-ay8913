@@ -67,17 +67,6 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             latched_register <= 0;
             for (integer i = 0; i < REGISTERS; i = i + 1)
                 register[i] <= 0;
-            // register[13] <= 4'b0000; //  \___ 
-            // register[13] <= 4'b0100; //  /___
-            // register[13] <= 4'b1000; //  \\\\
-            // register[13] <= 4'b1001; //  \___
-            // register[13] <= 4'b1010; //  \/\/
-            // register[13] <= 4'b1011; //  \```
-            // register[13] <= 4'b1100; //  ////
-            // register[13] <= 4'b1101; //  /```
-            // register[13] <= 4'b1110; //  /\/\
-            // register[13] <= 4'b1111; //  /___
-
             active <= 0;
             restart_envelope <= 0;
         end else begin
