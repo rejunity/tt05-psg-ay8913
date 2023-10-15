@@ -32,7 +32,7 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
     output wire  out
 );
     wire trigger;
-    tone #(.PERIOD_BITS(PERIOD_BITS)) tone (
+    tone #(.PERIOD_BITS(PERIOD_BITS)) tone (    // @TODO: extract counter into a separate model
         .clk(clk),
         .reset(reset),
         .period(period),
@@ -43,11 +43,12 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
         .clk(clk),
         .reset(reset),
         .signal(trigger),
-        .on_edge(trigger_edge)
+        .on_edge(trigger_edge)                  // similar to noise_shift_clk_cond [see: lvd]
     );
 
     reg [LFSR_BITS-1:0] lfsr;
-    wire is_lfsr_zero = (lfsr == 0); // more readable, but equivalent to the hardware implementation ~(|lfsr)
+    wire is_lfsr_zero = (lfsr == 0);            // more readable, but equivalent to
+                                                // hardware implementation ~(|lfsr) [see: lvd]
     wire lfsr_shift_in = (lfsr[LFSR_TAP0] ^ lfsr[LFSR_TAP1]) | is_lfsr_zero;
 
     always @(posedge clk) begin

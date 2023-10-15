@@ -26,7 +26,7 @@
 //       has an immediate effect,       has an immediate effect,
 //     shortening the current wave!   prolonging the current wave!
 
-module tone #( parameter PERIOD_BITS = 12 ) (
+module tone #( parameter PERIOD_BITS = 12 ) ( // @TODO: extract counter into a separate model and use in tone, noise & envelope
     input  wire clk,
     input  wire reset,
 
@@ -42,11 +42,19 @@ module tone #( parameter PERIOD_BITS = 12 ) (
             counter <= 1;
             state <= 0;
         end else begin
-            if (counter >= period) begin
-                counter <= 1;               // reset counter to 1 (to emulate AY counter increase preceding compare)
-                                            // Real AY-3-891x assign 0 on reset, but since it uses two-phase clock f1 and /f1
-                                            // (as far as I could understand from the reverse engineered behavior)
-                                            // AY increases the counter on f1 and compares to period on /f1.
+            if (counter >= period) begin    // real AY-3-891x uses "carry-out" signal from the comparator to reset counter
+                counter <= 1;               // reset counter to 1
+                                            // @INVESTIGATE what UP_RST means in reverse engineered AY-3-891x schematics [see lvd ay_model_counter]
+                                            // .UP_RST(0) is present on first flip-flop on ALL the counter chains: tone, noise & envelope!
+                                            // However .UP_RST(0) is NOT present on the internal envelope counter that definetely is counting from _0_ to 15
+                                                //  // first flipflop
+                                                //  ay_model_clk_ff #( .UP_RST(0) ) counter_bit_0
+                                            //
+                                            // There are two options with real AY-3-891x upon counter reset, either
+                                            // A) counter's first flip-flop is set to 1 due to .UP_RST(0)
+                                            // OR
+                                            // B) counter is reset to 0, but since real AY-3-819x use two-phase clock f1 and /f1
+                                            // it might increase the counter on f1, but compare to period on /f1.
                 state <= ~state;            // flip output state
             end else
                 counter <= counter + 1'b1;
