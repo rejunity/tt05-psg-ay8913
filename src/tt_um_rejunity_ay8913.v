@@ -202,8 +202,8 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(volume_C)
         );
 
-    // @TODO: 0 as double the rate of the envelope
-    // @TODO: correct timing of the envelopes, test to validate envelope frequency
+    // @TODO: 0 as double the rate of the envelope.
+    //        ^^^ However need to check, if that actually happens in real hardware. Can't see any evidence in lvd reverse engeeniring.
     // @TODO: master volume mixing
     // @TODO: global PWM, per channel PWMs
 
