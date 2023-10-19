@@ -9,22 +9,22 @@
 // https://github.com/lvd2/ay-3-8910_reverse_engineered/blob/master/rtl/render/aytab.v
 // v/0xFFFF for v in [0x0000, 0x0290, 0x03B0, 0x0560, 0x07E0, 0x0BB0, 0x1080, 0x1B80, 0x2070, 0x3480, 0x4AD0, 0x5F70, 0x7E10, 0xA2A0, 0xCE40, 0xFFFF]]
 
-// assign tbl[ 0] = 16'h0000;
-// assign tbl[ 1] = 16'h0290;      // 0,010009918364233
-// assign tbl[ 2] = 16'h03B0;      // 0,014404516670481
-// assign tbl[ 3] = 16'h0560;      // 0,021054242215592
-// assign tbl[ 4] = 16'h07E0;      // 0,030846913013541
-// assign tbl[ 5] = 16'h0BB0;      // 0,045780735980415
-// assign tbl[ 6] = 16'h1080;      // 0,064631627266468
-// assign tbl[ 7] = 16'h1B80;      // 0,107719378777446
-// assign tbl[ 8] = 16'h2070;      // 0,127059903603397
-// assign tbl[ 9] = 16'h3480;      // 0,205646086756943
-// assign tbl[10] = 16'h4AD0;      // 0,293045673628644
-// assign tbl[11] = 16'h5F70;      // 0,373835207711728
-// assign tbl[12] = 16'h7E10;      // 0,493795424986612
-// assign tbl[13] = 16'hA2A0;      // 0,637013235406625
-// assign tbl[14] = 16'hCE40;      // 0,807895340830847
-// assign tbl[15] = 16'hFFFF;
+// assign tbl[ 0] = 12'h000;
+// assign tbl[ 1] = 12'h029;      // 0,010009918364233
+// assign tbl[ 2] = 12'h03B;      // 0,014404516670481
+// assign tbl[ 3] = 12'h056;      // 0,021054242215592
+// assign tbl[ 4] = 12'h07E;      // 0,030846913013541
+// assign tbl[ 5] = 12'h0BB;      // 0,045780735980415
+// assign tbl[ 6] = 12'h108;      // 0,064631627266468
+// assign tbl[ 7] = 12'h1B8;      // 0,107719378777446
+// assign tbl[ 8] = 12'h207;      // 0,127059903603397
+// assign tbl[ 9] = 12'h348;      // 0,205646086756943
+// assign tbl[10] = 12'h4AD;      // 0,293045673628644
+// assign tbl[11] = 12'h5F7;      // 0,373835207711728
+// assign tbl[12] = 12'h7E1;      // 0,493795424986612
+// assign tbl[13] = 12'hA2A;      // 0,637013235406625
+// assign tbl[14] = 12'hCE4;      // 0,807895340830847
+// assign tbl[15] = 12'hFFF;
 
 // 0.0,
 // 0.010009918364232854,
@@ -58,6 +58,33 @@
 //     { 15950, 15350, 15090, 14760, 14275, 13620, 12890, 11370,
 //         10600,  8590,  7190,  5985,  4820,  3945,  3017,  2345 }
 // };
+
+
+// The AY-3-8910 has 16-steps that are -3.0dB apart,
+//    -- and the YM-2149 has 32-steps that are -1.5dB apart.
+
+// -- ln10 = Natural logarithm of 10, ~= 2.302585
+// -- amp  = Amplitude in voltage, 0.2, 1.45, etc.
+// -- dB   = decibel value in dB, -1.5, -3, etc.
+// --
+// -- dB  = 20 * log(amp) / ln10
+// -- amp = 10 ^ (dB / 20)
+// --
+// -- -1.5dB = 0.8413951416
+// -- -2.0dB = 0.7943282347
+// -- -3.0dB = 0.7079457843
+
+// YM-2149 datasheet reference values according to https://github.com/dnotq/ym2149_audio/blob/master/rtl/ym2149_audio.vhd
+// -- 1V reference values based on the datasheet:
+// --
+// -- 1.0000, 0.8414, 0.7079, 0.5957, 0.5012, 0.4217, 0.3548, 0.2985,
+// -- 0.2512, 0.2113, 0.1778, 0.1496, 0.1259, 0.1059, 0.0891, 0.0750,
+// -- 0.0631, 0.0531, 0.0447, 0.0376, 0.0316, 0.0266, 0.0224, 0.0188,
+// -- 0.0158, 0.0133, 0.0112, 0.0094, 0.0079, 0.0067, 0.0056, 0.0047
+//    x"000",x"017",x"01B",x"021",x"027",x"02E",x"037",x"041",
+//    x"04D",x"05C",x"06D",x"081",x"09A",x"0B7",x"0D9",x"102",
+//    x"133",x"16D",x"1B2",x"204",x"265",x"2D8",x"361",x"405",
+//    x"4C7",x"5AD",x"6BF",x"804",x"987",x"B53",x"D76",x"FFF");
 
 // @TODO: perhaps rename to volume or amplitude to match AY manuals
 // @TODO: python script and convert MAME params into amplitude levels, compare with lvd version
