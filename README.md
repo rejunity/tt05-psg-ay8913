@@ -30,7 +30,8 @@ Chip decap images and reverse engineering
 * AY-3-8910 die size: 4.16 mm x 3.80 mm
 
 Implementations
-* https://github.com/jotego/jt49
+* https://github.com/jotego/jt49 (Verilog)
+* https://github.com/dnotq/ym2149_audio/ (VHDL)
 * https://opencores.org/projects/sqmusic
 * https://github.com/mamedev/mame/blob/master/src/devices/sound/ay8910.cpp
 * https://github.com/arnaud-carre/sndh-player/blob/main/AtariAudio/ym2149c.cpp
