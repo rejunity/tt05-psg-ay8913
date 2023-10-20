@@ -44,6 +44,7 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
         .reset(reset),
         .signal(trigger),
         .on_edge(trigger_edge)                  // similar to noise_shift_clk_cond [see: lvd]
+                                                // @TODO: look-ahead rising-edge detect the noise flip-flop [see: dnotq]
     );
 
     reg [LFSR_BITS-1:0] lfsr;

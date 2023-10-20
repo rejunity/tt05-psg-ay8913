@@ -40,7 +40,7 @@ module tone #( parameter PERIOD_BITS = 12 ) ( // @TODO: extract counter into a s
     always @(posedge clk) begin
         if (reset) begin
             counter <= 1;
-            state <= 0;
+            state <= 1;                     // According to dnotq VHDL (and lvd?) flip-flop is set to 1 upon reset
         end else begin
             if (counter >= period) begin    // real AY-3-891x uses "carry-out" signal from the comparator to reset counter
                 counter <= 1;               // reset counter to 1
@@ -55,6 +55,37 @@ module tone #( parameter PERIOD_BITS = 12 ) ( // @TODO: extract counter into a s
                                             // OR
                                             // B) counter is reset to 0, but since real AY-3-819x use two-phase clock f1 and /f1
                                             // it might increase the counter on f1, but compare to period on /f1.
+
+// Better explanation from dnotq VHDL implementation
+// --------------------------------------------------
+// Timing for 0 and 1 period-count, showing why they are the same.  The real
+// IC counts on the 4-count of the clock divider, so this implementation
+// does the same.  In the real IC, the >= reset and count enable happen in
+// the same 4-count cycle due to the asynchronous nature of the IC.  In a
+// synchronous FPGA design, the >= reset is performed 1-cycle prior to the
+// count enable.
+//   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _
+// _/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_ PSG clock (input clock enable)
+//           _______________                 _______________
+// ___3___4_/ 5   6   7   0 \_1___2___3___4_/ 5   6   7   0 \_1___2___3___4_ divided clock count
+//   ___                             ___                             ___
+// _/   \___________________________/   \___________________________/   \___ >= enable (resets count to 0)
+//       ___                             ___                             ___
+// _____/   \___________________________/   \___________________________/    count enable
+// _____ ___ ___________________________ ___ ___________________________ ___
+// _____X_0_X______________1____________X_0_X______________1____________X_0_ tone counter
+// _____                                 _______________________________
+//      \_______________________________/                               \___ tone flip-flop
+
+// The tone counter >= reset strobe must be enabled prior to the count enable
+// so the tone counter is only a zero-count for *one input clock cycle*, and
+// not the count-enable cycle (i.e. input clock divided by 8).
+//
+// This is the reason why a period-count of zero is the same as a period-
+// count of one.  The time the counter has a zero value is merged with the
+// last 8-cycle period where the >= condition is detected.
+
+
                 state <= ~state;            // flip output state
             end else
                 counter <= counter + 1'b1;

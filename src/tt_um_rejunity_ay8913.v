@@ -54,7 +54,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire clk_env = reset | restart_envelope         // BUT pass master clock when reset is asserted, otherwise short resets will be missed by the slow clock
                          ? clk : clk_counter[2];    // master clock for envelope
                                                     // @TODO: real AY-3-819x strobes clk_8 = ~clk_counter[0] & ~clk_counter[1] & clk_counter[2] instead
-                                                    // which results in 1 clk long pulse every 8 clks!
+                                                    // which results in 1 clk long pulse every 8 clks, on the 4th divider count (100)
 
     localparam REGISTERS = 16;
     reg [3:0] latched_register;
@@ -83,8 +83,10 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             else if (write)
                 register[latched_register] <= data;
 
-            restart_envelope <= write &&                    // restart envelope
-                                latched_register == 4'd13;  // when data is written to R13 Envelope Shape register
+            restart_envelope <= write &&                    // restart envelope, if data is written
+                                latched_register == 4'd13;  // to R13 Envelope Shape register
+                                // NOTE: restart_envelope is held as long as the write cycle,
+                                // which is accurate to the real AY-3-819x
         end
     end
 

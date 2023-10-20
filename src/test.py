@@ -470,7 +470,7 @@ async def test_envelopes_with_default_frequency(dut):
 
     await set_envelope(dut, shape=r"/\/\ ")                     # Envelope: set /\/\ shape
     await assert_output(dut, frequency=7812)
-    await assert_output(dut, period=16)
+    await assert_output(dut, period=16) # @TODO: should be period = 32 according to dnotq
 
     await set_envelope(dut, shape=r"//// ")                     # Envelope: set //// shape
     await assert_output(dut, frequency=7812*2)
