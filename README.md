@@ -1,19 +1,35 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg)
 
-# AY-3-8913 PSG in Verilog for Tiny Tapeout 5 (WIP)
+# ASIC for AY-3-8913 PSG in Verilog for Tiny Tapeout 5
 
-This Verilog implementation is a replica of the classical **[AY-3-8193](https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910)** programmable sound generator.
-With roughly a 1500 logic gates this design fits on a **single tile** of the TinyTapeout.
+<p align="center" width="100%">
+    <img width="50%" src="./docs/AY-3-8913.jpg">
+</p>
 
-### Modern replica of a classic
+# Modern replica of a classic AY-3-8913
+
+This Verilog implementation is a replica of the classical **[AY-3-8913](https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910)** programmable sound generator.
+With roughly a 1500 logic gates this design fits on a **single tile** of the [TinyTapeout](www.tinytapeout.com).
 
 The main goals of this project are:
 
-1. closely replicate the behavior and eventually the complete **design of the original** AY-3-819x
+1. closely replicate the behavior and eventually the complete **design of the original** AY-3-891x with builtin DACs
 2. provide a readable and well documented code for educational and hardware **preservation** purposes
 3. leverage the **modern fabrication** process
 
 A significant effort was put into a thorough **test suite** for regression testing and validation against the original chip behavior.
+
+# ASIC
+
+The ASIC for the AY-3-8913 replica is built using the open source Skywater 130nm [PDK](https://github.com/google/skywater-pdk) and is part of multi project [TinyTapeout](www.tinytapeout.com).
+
+Using 130nm process this AY-3-8913 fits in **160x100** um. The design consist of roughly **1500** digital logic gates and of which **219** are data flip-flops storing 1 bit of data each. Logic takes 85% of the chip area. Total wire length is **28 mm**!
+
+<p align="center" width="100%">
+    <img width="75%" src="./docs/GDS.png">
+</p>
+
+Examine the layout of this chip in [3D](https://gds-viewer.tinytapeout.com/?model=https://rejunity.github.io/tt05-psg-ay8913/tinytapeout.gds.gltf)!
 
 
 ### Chip technical capabilities
@@ -24,17 +40,17 @@ A significant effort was put into a thorough **test suite** for regression testi
 - Capable to produce a range of waves typically from **122 Hz** to **125 kHz**, defined by **12-bit** registers.
 - **16** different volume levels
 
-### Historical use of the AY-3-819x
+### Historical use of the AY-3-891x
 
-The AY-3-819x family of programmable sound generators was introduced by General Instrument in 1978. Variants of the AY-3-819x were broadly used:
+The AY-3-891x family of programmable sound generators was introduced by General Instrument in 1978. Variants of the AY-3-891x were broadly used:
 
 - home computers: Amstrad CPC, Atari ST, Oric-1, Sharp X1, MSX, ZX Spectrum 128/+2/+3
 - game consoles: Intellivision, Vectrex
 - and arcade machines
 
-The AY-3-819x chip family competed with the similar [Texas Instruments SN76489](https://en.wikipedia.org/wiki/Texas_Instruments_SN76489).
+The AY-3-891x chip family competed with the similar [Texas Instruments SN76489](https://en.wikipedia.org/wiki/Texas_Instruments_SN76489).
 
-### The reverse engineered AY-3-819x 
+### The reverse engineered AY-3-891x 
 
 This implementation would not be possible without the reverse engineered [schematics and analysis](https://github.com/lvd2/ay-3-8910_reverse_engineered)
 based on decapped [AY-3-8910](https://siliconpr0n.org/map/gi/ay-3-8910) and [AY-3-8914](https://siliconpr0n.org/map/gi/ay-3-8914) chips.
@@ -82,7 +98,7 @@ route the resulting analog audio to piezo speaker or amplifier.
 Another option is to use the Pulse Width Modulated (PWM) AUDIO OUT pin with OpAmp+capacitor based integrator or capacitor based low-pass filter and a speaker:
 
 ```
-  uController             AY-3-8193
+  uController             AY-3-8913
   ,---------.            ,---._.---. 
   |         |    2 Mhz ->|CLK  SEL0|<-- 0
   |    GPIOx|----------->|BC1  SEL1|<-- 0
