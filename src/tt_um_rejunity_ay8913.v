@@ -9,7 +9,7 @@
 
 module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
                                 parameter CHANNEL_OUTPUT_BITS = 8,
-                                parameter MASTER_OUTPUT_BITS = 7
+                                parameter MASTER_OUTPUT_BITS = 8
 ) (
     input  wire [7:0] ui_in,    // Dedicated inputs - connected to the input switches
     output wire [7:0] uo_out,   // Dedicated outputs - connected to the 7 segment display
@@ -217,26 +217,43 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(volume_C)
         );
 
-    // @TODO: master volume mixing
-    // @TODO: global PWM, per channel PWMs
+    // @TODO: divide master by 3 instead of 2
+    localparam MASTER_ACCUMULATOR_BITS = CHANNEL_OUTPUT_BITS + 1;
+    localparam MASTER_MAX_OUTPUT_VOLUME = {MASTER_OUTPUT_BITS{1'b1}};
+    wire [MASTER_ACCUMULATOR_BITS-1:0] master;
+    wire master_overflow;
+    assign { master_overflow, master } = volume_A + volume_B + volume_C; // sum all channels
+    assign uo_out[MASTER_OUTPUT_BITS-1:0] = 
+        (master_overflow == 0) ? master[MASTER_ACCUMULATOR_BITS-1 -: MASTER_OUTPUT_BITS] :  // pass highest MASTER_OUTPUT_BITS to the DAC output pins
+                                 MASTER_MAX_OUTPUT_VOLUME;                                  // ALSO prevent value wraparound in the master output
 
-    wire [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
-    assign uo_out[7:0] = master; // @TODO: divide by 3
+    // PWM outputs
+    pwm #(.VALUE_BITS(CHANNEL_OUTPUT_BITS)) pwm_A (
+        .clk(clk),
+        .reset(reset),
+        .value(volume_A),
+        .out(uio_out[4])
+        );
 
-    // // sum up all the channels, clamp to the highest value when overflown
-    // localparam OVERFLOW_BITS = $clog2(NUM_CHANNELS);
-    // localparam ACCUMULATOR_BITS = CHANNEL_OUTPUT_BITS + OVERFLOW_BITS;
-    // wire [ACCUMULATOR_BITS-1:0] master;
-    // assign master = (volumes[0] + volumes[1] + volumes[2] + volumes[3]);
-    // assign uo_out[7:1] = (master[ACCUMULATOR_BITS-1 -: OVERFLOW_BITS] == 0) ? master[CHANNEL_OUTPUT_BITS-1 -: MASTER_OUTPUT_BITS] : {MASTER_OUTPUT_BITS{1'b1}};
+    pwm #(.VALUE_BITS(CHANNEL_OUTPUT_BITS)) pwm_B (
+        .clk(clk),
+        .reset(reset),
+        .value(volume_B),
+        .out(uio_out[5])
+        );
 
-    // pwm #(.VALUE_BITS(MASTER_OUTPUT_BITS)) pwm (
-    //     .clk(clk),
-    //     .reset(reset),
-    //     .value(uo_out[7:1]),
-    //     .out(uo_out[0])
-    //     );
+    pwm #(.VALUE_BITS(CHANNEL_OUTPUT_BITS)) pwm_C (
+        .clk(clk),
+        .reset(reset),
+        .value(volume_C),
+        .out(uio_out[6])
+        );
 
-    assign uio_out[7:4] = 4'b0000;  // TODO: connect PWMs here
+    pwm #(.VALUE_BITS(MASTER_ACCUMULATOR_BITS)) pwm_master (
+        .clk(clk),
+        .reset(reset),
+        .value(master),
+        .out(uio_out[7])
+        );
     
 endmodule
