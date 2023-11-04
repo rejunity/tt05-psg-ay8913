@@ -3,7 +3,7 @@
 # ASIC for AY-3-8913 PSG in Verilog for Tiny Tapeout 5
 
 <p align="center" width="100%">
-    <img width="50%" src="./docs/AY-3-8913.jpg">
+    <img width="30%" src="./docs/AY-3-8913.jpg">
 </p>
 
 # Modern replica of a classic AY-3-8913
