@@ -11,6 +11,7 @@ Info
 * https://www.atari-shrine.co.uk/hardware/articles/Yamaha%20YM2149.html
 * http://wiki.intellivision.us/index.php?title=PSG
 * https://www.atarimagazines.com/v4n7/stsound.html
+* http://clarets.org/steve/projects/2021_ym2149_sync_square.html
 
 Compatible chips:
 * YMZ294, YMZ284, YMZ285
@@ -24,9 +25,11 @@ Compatible chips:
 Computers that used AY-3-819x / YM2149
 * Atari ST, Intellivsion, Amstrad CPC, Oric-1, Colour Genie, MSX, ZX Spectrum 128
 
-Chip decap images and reverse engineering
+Reverse Engineering and chip decap images
 * https://github.com/lvd2/ay-3-8910_reverse_engineered
 * http://privatfrickler.de/blick-auf-den-chip-soundchip-general-instruments-ay-3-8910/
+* https://siliconpr0n.org/map/gi/ay-3-8910/
+* https://siliconpr0n.org/map/gi/ay-3-8914
 * AY-3-8910 die size: 4.16 mm x 3.80 mm
 
 Implementations
