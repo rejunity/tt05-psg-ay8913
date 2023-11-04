@@ -9,7 +9,7 @@
 # Modern replica of a classic AY-3-8913
 
 This Verilog implementation is a replica of the classical **[AY-3-8913](https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910)** programmable sound generator.
-With roughly a 1500 logic gates this design fits on a **single tile** of the [TinyTapeout](www.tinytapeout.com).
+With roughly a 1600 logic gates this design fits on a **single tile** of the [TinyTapeout](www.tinytapeout.com).
 
 The main goals of this project are:
 
@@ -23,7 +23,7 @@ A significant effort was put into a thorough **test suite** for regression testi
 
 The ASIC for the AY-3-8913 replica is built using the open source Skywater 130nm [PDK](https://github.com/google/skywater-pdk) and is part of multi project [TinyTapeout](www.tinytapeout.com).
 
-Using 130nm process this AY-3-8913 fits in **160x100** um. The design consist of roughly **1500** digital logic gates and of which **219** are data flip-flops storing 1 bit of data each. Logic takes 85% of the chip area. Total wire length is **28 mm**!
+Using 130nm process this AY-3-8913 fits in **160x100** um. The design consist of roughly **1600** digital logic gates and of which **223** are data flip-flops storing 1 bit of data each. Logic takes 87% of the chip area. Total wire length is **30 mm**!
 
 <p align="center" width="100%">
     <img width="75%" src="./docs/GDS.png">
