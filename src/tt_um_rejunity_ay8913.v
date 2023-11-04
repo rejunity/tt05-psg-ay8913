@@ -20,13 +20,28 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     input  wire       clk,      // clock
     input  wire       rst_n     // reset_n - low to reset
 );
-    assign uio_out[7:0] = {8{1'b0}};
-    assign uio_oe[7:0] = 8'b1111_1100;  // the first 2 pins of the Bidirectional path are used for
+    assign uio_oe[7:0] = 8'b1111_00_00; // the first 4 pins of the Bidirectional path are used for
                                         // bus control lines (BDIR and BC1) are set to input mode (=0),
+                                        // clock divider pins (SEL0, SEL1)  are set to input mode (=0),
                                         // the rest of the pins are set to output mode (=1)
+    assign uio_out[3:0] =      4'b0000; // the upper 4 pins: 3 channels PWM and master AUDIO_OUT in PWM mode
     wire reset = ! rst_n;
 
+    wire [1:0] master_clock_control = uio_in[3:2];
     wire [7:0] data = ui_in;
+
+    reg [$clog2(128)-1:0] clk_counter;
+    reg clk_master_strobe;
+    always @(*) begin
+        case(master_clock_control[1:0])
+            2'b01:  clk_master_strobe = 1;                                  // no div, counters for tone & noise are always enabled
+                                                                            // useful to speedup record.py
+            2'b10:  clk_master_strobe = clk_counter[$clog2(128)-1:0] == 0;  // div 128, for TinyTapeout5 running 32..50Mhz
+            default:
+                    clk_master_strobe = clk_counter[$clog2(8)-1:0] == 0;    // div  8, for standard AY-3-819x 
+                                                                            // running on 1.7 MHz .. 2 MHz frequencies
+        endcase
+    end
 
     // AY-3-819x Bus Control Decode
     // NOTE: AY-3-819x to match design of CP1610 CPU has one more bus control line BC2
@@ -49,13 +64,6 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     wire write = bus_write && active;   // NOTE: chip must be in active state
                                         // in order to accept writes to the register file 
 
-    reg [2:0] clk_counter;
-    wire clk_8   = reset ? clk : clk_counter[2];    // master clock divided by 8 for tunes and noise
-    wire clk_env = reset | restart_envelope         // BUT pass master clock when reset is asserted, otherwise short resets will be missed by the slow clock
-                         ? clk : clk_counter[2];    // master clock for envelope
-                                                    // @TODO: real AY-3-819x strobes clk_8 = ~clk_counter[0] & ~clk_counter[1] & clk_counter[2] instead
-                                                    // which results in 1 clk long pulse every 8 clks, on the 4th divider count (100)
-
     localparam REGISTERS = 16;
     reg [3:0] latched_register;
     reg [7:0] register[REGISTERS-1:0];  // 82 bits are used out of 128
@@ -72,7 +80,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
             active <= 0;
             restart_envelope <= 0;
         end else begin
-            clk_counter <= clk_counter + 1;                 // provides clk_8 and clk_env dividers
+            clk_counter <= clk_counter + 1;                 // provides clk_master_strobe for tone, noise and envelope
 
             if (bus_latch_reg)                              // chip becomes active for subsequent reads/writes
                 active <= cs;                               // IFF cs==1, during the Latch Register Address phase
@@ -139,26 +147,30 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     // Tone, noise & envelope generators
     wire tone_A, tone_B, tone_C, noise;
     tone #(.PERIOD_BITS(12)) tone_A_generator (
-        .clk(clk_8),
+        .clk(clk),
+        .enable(clk_master_strobe),
         .reset(reset),
         .period(tone_period_A),
         .out(tone_A)
         );
     tone #(.PERIOD_BITS(12)) tone_B_generator (
-        .clk(clk_8),
+        .clk(clk),
+        .enable(clk_master_strobe),
         .reset(reset),
         .period(tone_period_B),
         .out(tone_B)
         );
     tone #(.PERIOD_BITS(12)) tone_C_generator (
-        .clk(clk_8),
+        .clk(clk),
+        .enable(clk_master_strobe),
         .reset(reset),
         .period(tone_period_C),
         .out(tone_C)
         );
 
     noise #(.PERIOD_BITS(5)) noise_generator (
-        .clk(clk_8),
+        .clk(clk),
+        .enable(clk_master_strobe),
         .reset(reset),
         .period(noise_period),
         .out(noise)
@@ -166,7 +178,8 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
 
     wire [3:0] envelope; // NOTE: Y2149 envelope outputs 5 bits, but programmable amplitude is only 4 bits!
     envelope #(.PERIOD_BITS(16), .ENVELOPE_BITS(4)) envelope_generator (
-        .clk(clk_env),
+        .clk(clk),
+        .enable(clk_master_strobe),
         .reset(reset | restart_envelope),
         .continue_(envelope_continue),
         .attack(envelope_attack),
@@ -204,13 +217,12 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
         .out(volume_C)
         );
 
-    // @TODO: 0 as double the rate of the envelope
     // @TODO: correct timing of the envelopes, test to validate envelope frequency
     // @TODO: master volume mixing
     // @TODO: global PWM, per channel PWMs
 
     wire [CHANNEL_OUTPUT_BITS-1:0] master = volume_A + volume_B + volume_C;
-    assign uo_out[7:0] = master;
+    assign uo_out[7:0] = master; // @TODO: divide by 3
 
     // // sum up all the channels, clamp to the highest value when overflown
     // localparam OVERFLOW_BITS = $clog2(NUM_CHANNELS);

@@ -28,6 +28,7 @@
 
 module tone #( parameter PERIOD_BITS = 12 ) ( // @TODO: extract counter into a separate model and use in tone, noise & envelope
     input  wire clk,
+    input  wire enable,    
     input  wire reset,
 
     input  wire [PERIOD_BITS-1:0]  period,
@@ -42,8 +43,9 @@ module tone #( parameter PERIOD_BITS = 12 ) ( // @TODO: extract counter into a s
             counter <= 1;
             state <= 1;                     // According to dnotq VHDL (and lvd?) flip-flop is set to 1 upon reset
         end else begin
-            if (counter >= period) begin    // real AY-3-891x uses "carry-out" signal from the comparator to reset counter
-                counter <= 1;               // reset counter to 1
+            if (enable) begin
+                if (counter >= period) begin // real AY-3-891x uses "carry-out" signal from the comparator to reset counter
+                    counter <= 1;           // reset counter to 1
                                             // @INVESTIGATE what UP_RST means in reverse engineered AY-3-891x schematics [see lvd ay_model_counter]
                                             // .UP_RST(0) is present on first flip-flop on ALL the counter chains: tone, noise & envelope!
                                             // However .UP_RST(0) is NOT present on the internal envelope counter that definetely is counting from _0_ to 15
@@ -86,9 +88,10 @@ module tone #( parameter PERIOD_BITS = 12 ) ( // @TODO: extract counter into a s
 // last 8-cycle period where the >= condition is detected.
 
 
-                state <= ~state;            // flip output state
-            end else
-                counter <= counter + 1'b1;
+                    state <= ~state;            // flip output state
+                end else
+                    counter <= counter + 1'b1;
+            end
         end
     end
 

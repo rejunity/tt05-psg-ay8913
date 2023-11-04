@@ -31,6 +31,7 @@
 
 module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     input  wire clk,
+    input  wire enable,
     input  wire reset,
 
     input  wire hold,
@@ -69,6 +70,7 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     wire trigger;
     tone #(.PERIOD_BITS(PERIOD_BITS)) tone (    // @TODO: extract counter into a separate model
         .clk(clk),
+        .enable(enable),
         .reset(reset),
         .period(period),
         .out(trigger));
@@ -81,8 +83,7 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
         .clk(clk),
         .reset(reset),
         .signal(trigger),
-        .on_edge(trigger_edge)                  // NOTE: assign test_1 = f_env; [see: lvd]
-                                                // @TODO: should be on_posedge for AY [see: dnotq]
+        .on_posedge(trigger_edge)               // NOTE: assign test_1 = f_env; [see: lvd]
     );
 
     reg invert_output;
