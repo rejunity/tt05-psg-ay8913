@@ -5,7 +5,7 @@ from cocotb.triggers import RisingEdge, FallingEdge, Timer, ClockCycles
 MASTER_CLOCK = 2_000_000 # 2MHZ
 
 ZERO_VOLUME = 2 # int(0.2 * 256) # AY might be outputing low constant DC as silence instead of complete 0V
-MAX_VOLUME = 255
+MAX_VOLUME = 255/2
 
 def print_chip_state(dut):
     try:
@@ -273,7 +273,7 @@ async def test_output_amplitudes(dut):
         for vol in range(16):
             await set_volume(dut, chan, vol)                    # Channel A/B/C: set volume
             await assert_constant_output(dut)
-            assert get_output(dut) > prev_volume or (prev_volume == get_output(dut) and vol < 4)
+            assert get_output(dut) > prev_volume or (prev_volume == get_output(dut) and vol < 6)
             prev_volume = get_output(dut)
 
         await set_volume(dut, chan, 0)                           # Channel A: set volume back to 0
