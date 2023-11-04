@@ -31,6 +31,7 @@
 
 module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     input  wire clk,
+    input  wire enable,
     input  wire reset,
 
     input  wire hold,
@@ -69,21 +70,25 @@ module envelope #( parameter PERIOD_BITS = 16, parameter ENVELOPE_BITS = 4 ) (
     wire trigger;
     tone #(.PERIOD_BITS(PERIOD_BITS)) tone (    // @TODO: extract counter into a separate model
         .clk(clk),
+        .enable(enable),
         .reset(reset),
         .period(period),
         .out(trigger));
 
+   // NOTE: When the envelope-period is 0 or 1, the AY-3-8910 shape-counter counts at
+   // one-count for every 16 main-clock cycles, and the YM-2149 counts twice in
+   // the same 16 cycles [see: dnotq]
     wire trigger_edge;
     signal_edge signal_edge(
         .clk(clk),
         .reset(reset),
         .signal(trigger),
-        .on_edge(trigger_edge)                  // NOTE: assign test_1 = f_env; [see lvd]
+        .on_posedge(trigger_edge)               // NOTE: assign test_1 = f_env; [see: lvd]
     );
 
     reg invert_output;
-    reg [ENVELOPE_BITS-1:0] envelope_counter;
-    reg stop;
+    reg [ENVELOPE_BITS-1:0] envelope_counter;   // @TODO: rename to counter
+    reg stop;                                   // @TODO: rename to hold_reached or stop_counter
     always @(posedge clk) begin
         if (reset) begin
             envelope_counter <= 0;

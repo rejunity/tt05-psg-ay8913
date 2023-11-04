@@ -26,14 +26,16 @@
 
 module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, parameter PERIOD_BITS = 5 ) (
     input  wire clk,
+    input  wire enable,
     input  wire reset,
     input  wire [PERIOD_BITS-1:0] period,
 
     output wire  out
 );
     wire trigger;
-    tone #(.PERIOD_BITS(PERIOD_BITS)) tone (    // @TODO: extract counter into a separate model
+    tone #(.PERIOD_BITS(PERIOD_BITS)) tone (
         .clk(clk),
+        .enable(enable),
         .reset(reset),
         .period(period),
         .out(trigger));
@@ -43,7 +45,8 @@ module noise #( parameter LFSR_BITS = 17, LFSR_TAP0 = 0, LFSR_TAP1 = 3, paramete
         .clk(clk),
         .reset(reset),
         .signal(trigger),
-        .on_edge(trigger_edge)                  // similar to noise_shift_clk_cond [see: lvd]
+        .on_posedge(trigger_edge)               // similar to noise_shift_clk_cond [see: lvd]
+                                                // @TODO: look-ahead rising-edge detect the noise flip-flop [see: dnotq]
     );
 
     reg [LFSR_BITS-1:0] lfsr;
