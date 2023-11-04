@@ -50,10 +50,14 @@ The AY-3-891x family of programmable sound generators was introduced by General 
 
 The AY-3-891x chip family competed with the similar [Texas Instruments SN76489](https://en.wikipedia.org/wiki/Texas_Instruments_SN76489).
 
-### The reverse engineered AY-3-891x 
+### The reverse engineered AY-3-8910 / AY-3-8914
+
+<p align="center" width="100%">
+    <img width="55%" src="./docs/ay-3-8910_decapped_thumbnail.jpg">
+</p>
 
 This implementation would not be possible without the reverse engineered [schematics and analysis](https://github.com/lvd2/ay-3-8910_reverse_engineered)
-based on decapped [AY-3-8910](https://siliconpr0n.org/map/gi/ay-3-8910) and [AY-3-8914](https://siliconpr0n.org/map/gi/ay-3-8914) chips.
+done by [**lvd**](http://github.com/lvd2) and based on decapped [AY-3-8910](https://siliconpr0n.org/map/gi/ay-3-8910) and [AY-3-8914](https://siliconpr0n.org/map/gi/ay-3-8914) chips!
 
 
 ### Info
