@@ -2,7 +2,45 @@
 
 # AY-3-8913 PSG in Verilog for Tiny Tapeout 5 (WIP)
 
-Info
+This Verilog implementation is a replica of the classical **[AY-3-8193](https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910)** programmable sound generator.
+With roughly a 1500 logic gates this design fits on a **single tile** of the TinyTapeout.
+
+### Modern replica of a classic
+
+The main goals of this project are:
+
+1. closely replicate the behavior and eventually the complete **design of the original** AY-3-819x
+2. provide a readable and well documented code for educational and hardware **preservation** purposes
+3. leverage the **modern fabrication** process
+
+A significant effort was put into a thorough **test suite** for regression testing and validation against the original chip behavior.
+
+
+### Chip technical capabilities
+
+- **3 square wave** tone generators
+- **1 noise** generator
+- **1 envelope** generator with 10 patterns
+- Capable to produce a range of waves typically from **122 Hz** to **125 kHz**, defined by **12-bit** registers.
+- **16** different volume levels
+
+### Historical use of the AY-3-819x
+
+The AY-3-819x family of programmable sound generators was introduced by General Instrument in 1978. Variants of the AY-3-819x were broadly used:
+
+- home computers: Amstrad CPC, Atari ST, Oric-1, Sharp X1, MSX, ZX Spectrum 128/+2/+3
+- game consoles: Intellivision, Vectrex
+- and arcade machines
+
+The AY-3-819x chip family competed with the similar [Texas Instruments SN76489](https://en.wikipedia.org/wiki/Texas_Instruments_SN76489).
+
+### The reverse engineered AY-3-819x 
+
+This implementation would not be possible without the reverse engineered [schematics and analysis] https://github.com/lvd2/ay-3-8910_reverse_engineered)
+based on decapped [AY-3-8910](https://siliconpr0n.org/map/gi/ay-3-8910) and [AY-3-8914](https://siliconpr0n.org/map/gi/ay-3-8914) chips.
+
+
+### Info
 * https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910
 * https://www.vgmpf.com/Wiki/index.php/AY-3-8910
 * https://github.com/lvd2/ay-3-8910_reverse_engineered/blob/master/pdf/generalinstrument_ay-3-8910.pdf
@@ -13,7 +51,7 @@ Info
 * https://www.atarimagazines.com/v4n7/stsound.html
 * http://clarets.org/steve/projects/2021_ym2149_sync_square.html
 
-Compatible chips:
+### Compatible chips:
 * YMZ294, YMZ284, YMZ285
 * AY-3-8910, AY-3-8912, AY-3-8930
 * YM2149
@@ -22,17 +60,60 @@ Compatible chips:
 * WF19054, JFC 95101 and KC89C72
 * https://maidavale.org/blog/ay-ym-differences/
 
-Computers that used AY-3-819x / YM2149
+### Computers that used AY-3-819x / YM2149
 * Atari ST, Intellivsion, Amstrad CPC, Oric-1, Colour Genie, MSX, ZX Spectrum 128
 
-Reverse Engineering and chip decap images
+### Reverse Engineering and chip decap images
 * https://github.com/lvd2/ay-3-8910_reverse_engineered
 * http://privatfrickler.de/blick-auf-den-chip-soundchip-general-instruments-ay-3-8910/
 * https://siliconpr0n.org/map/gi/ay-3-8910/
 * https://siliconpr0n.org/map/gi/ay-3-8914
 * AY-3-8910 die size: 4.16 mm x 3.80 mm
 
-Implementations
+
+### Connect chip to the speaker
+
+There are several ways to connect this chip to the microcontroller and speaker.
+
+One option is to connect off the shelf data parallel Digital to Analog Converter (DAC)
+for example [Digilent R2R Pmod](https://digilent.com/reference/pmod/pmodr2r/start) to the output pins and
+route the resulting analog audio to piezo speaker or amplifier.
+
+Another option is to use the Pulse Width Modulated (PWM) AUDIO OUT pin with OpAmp+capacitor based integrator or capacitor based low-pass filter and a speaker:
+
+```
+  uController             AY-3-8193
+  ,---------.            ,---._.---. 
+  |         |    2 Mhz ->|CLK  SEL0|<-- 0
+  |    GPIOx|----------->|BC1  SEL1|<-- 0
+  |    GPIOx|----------->|BDIR     |
+  |    GPIOx|----------->|D0       |
+  |    GPIOx|----------->|D1       |
+  |    GPIOx|----------->|D2       |          C1
+  |    GPIOx|----------->|D3       |     ,----||----.
+  |    GPIOx|----------->|D4       |     |          | 
+  |    GPIOx|----------->|D5       |     |  OpAmp   |        Speaker     
+  |    GPIOx|----------->|D6  AUDIO|     |   |\     |            /|
+  |    GPIOx|----------->|D7   OUT |-----.---|-\    |   C2   .--/ |
+  `---------'            `---------'         |  }---.---||---|    |
+                                          ,--|+/             `--\ |
+                                          |  |/               |  \|
+                                          |                   |
+                                     GND ---             GND ---  
+```
+
+
+### Externally configurable clock divider
+
+| SEL1 | SEL0 | Description                        | Clock frequency|
+|------|------|------------------------------------|----------------|
+| 0    |    0 | Standard mode, clock divided by 8  | 1.7 .. 2.0 MHz |
+| 1    |    1 |           -----//-----             | 1.7 .. 2.0 MHz |
+| 0    |    1 | New mode for TT05, no clock divider| 250 .. 500 kHZ |
+| 1    |    0 | New mode for TT05, clock div. 128  |  25 .. 50  MHz |
+
+
+### Implementations
 * https://github.com/jotego/jt49 (Verilog)
 * https://github.com/dnotq/ym2149_audio/ (VHDL)
 * https://opencores.org/projects/sqmusic
@@ -40,7 +121,7 @@ Implementations
 * https://github.com/arnaud-carre/sndh-player/blob/main/AtariAudio/ym2149c.cpp
 * https://github.com/mengstr/Discrete-AY-3-8910 - using only discreet 74-series logic ICs!
 
-Music playback!
+### Music playback!
 * http://antarctica.no/stuff/atari/YM2/Misc.Games/ Music from several Atari ST games in YM format
 * https://www.cpc-power.com/index.php?page=database Music from many Amstract CPC games in YM format
 * https://vgmrips.net/packs/system/atari/st Music from AtariST games in VGM format
@@ -48,7 +129,7 @@ Music playback!
 * https://vgmrips.net/packs/system/ascii/msx Music from MSX games in VGM format
 
 
-## What is Tiny Tapeout?
+# What is Tiny Tapeout?
 
 TinyTapeout is an educational project that aims to make it easier and cheaper than ever to get your digital designs manufactured on a real chip.
 
