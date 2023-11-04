@@ -16,7 +16,7 @@ project:
   top_module:  "tt_um_rejunity_ay8913"      # Put the name of your top module here, must start with "tt_um_". Make it unique by including your github username
 
 # How many tiles your design occupies? A single tile is about 167x108 uM.
-  tiles: "1x2"    # Valid values: 1x1, 1x2, 2x2, 4x2 or 8x2
+  tiles: "1x1"    # Valid values: 1x1, 1x2, 2x2, 4x2 or 8x2
 
 # Keep a track of the submission yaml
 yaml_version: 4
@@ -31,12 +31,94 @@ documentation:
 
 # Longer description of how the project works. You can use standard markdown format.
   how_it_works: |
-      Explain how your project works
-      https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910
+
+      This Verilog implementation is a replica of the classical **[AY-3-8193](https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910)** programmable sound generator.
+      With roughly a 1500 logic gates this design fits on a **single tile** of the TinyTapeout.
+
+      ### Modern replica of a classic
+      
+      The main goals of this project are:
+
+      1. closely replicate the behavior and eventually the complete **design of the original** AY-3-819x
+      2. provide a readable and well documented code for educational and hardware **preservation** purposes
+      3. leverage the **modern fabrication** process
+
+      A significant effort was put into a thorough **test suite** for regression testing and validation against the original chip behavior.
+
+      # Chip technical capabilities
+
+      - **3 square wave** tone generators
+      - **1 noise** generator
+      - **1 envelope** generator with 10 patterns
+      - Capable to produce a range of waves typically from **122 Hz** to **125 kHz**, defined by **12-bit** registers.
+      - **16** different volume levels
+
+      # Historical use of the AY-3-819x
+
+      The AY-3-819x family of programmable sound generators was introduced by General Instrument in 1978. Variants of the AY-3-819x were broadly used:
+
+      - home computers: Amstrad CPC, Atari ST, Oric-1, Sharp X1, MSX, ZX Spectrum 128/+2/+3
+      - game consoles: Intellivision, Vectrex
+      - and arcade machines
+      
+      The AY-3-819x chip family competed with the similar [Texas Instruments SN76489](https://en.wikipedia.org/wiki/Texas_Instruments_SN76489).
+
+      ### The reverse engineered AY-3-819x 
+
+      This implementation would not be possible without the reverse engineered [schematics and analysis](https://github.com/lvd2/ay-3-8910_reverse_engineered)
+      based on decapped [AY-3-8910](https://siliconpr0n.org/map/gi/ay-3-8910) and [AY-3-8914]*https://siliconpr0n.org/map/gi/ay-3-8914) chips.
 
 # Instructions on how someone could test your project, include things like what buttons do what and how to set the clock if needed
   how_to_test:  |
-      Explain how to test your project
+      ### Test-suite
+
+      First of all, run the test suite:
+
+      ```
+      $ cd src
+      $ make
+      ```
+
+      ### Connect chip to the speaker
+
+      There are several ways to connect this chip to the microcontroller and speaker.
+
+      One option is to connect off the shelf data parallel Digital to Analog Converter (DAC)
+      for example [Digilent R2R Pmod](https://digilent.com/reference/pmod/pmodr2r/start) to the output pins and
+      route the resulting analog audio to piezo speaker or amplifier.
+
+      Another option is to use the Pulse Width Modulated (PWM) AUDIO OUT pin with OpAmp+capacitor based integrator or capacitor based low-pass filter and a speaker:
+
+      ```
+        uController             AY-3-8193
+        ,---------.            ,---._.---. 
+        |         |    2 Mhz ->|CLK  SEL0|<-- 0
+        |    GPIOx|----------->|BC1  SEL1|<-- 0
+        |    GPIOx|----------->|BDIR     |
+        |    GPIOx|----------->|D0       |
+        |    GPIOx|----------->|D1       |
+        |    GPIOx|----------->|D2       |          C1
+        |    GPIOx|----------->|D3       |     ,----||----.
+        |    GPIOx|----------->|D4       |     |          | 
+        |    GPIOx|----------->|D5       |     |  OpAmp   |        Speaker     
+        |    GPIOx|----------->|D6  AUDIO|     |   |\     |            /|
+        |    GPIOx|----------->|D7   OUT |-----.---|-\    |   C2   .--/ |
+        `---------'            `---------'         |  }---.---||---|    |
+                                                ,--|+/             `--\ |
+                                                |  |/               |  \|
+                                                |                   |
+                                           GND ---             GND ---  
+      ```
+
+
+      ### Externally configurable clock divider
+
+      | SEL1 | SEL0 | Description                        | Clock frequency|
+      |------|------|------------------------------------|----------------|
+      | 0    |    0 | Standard mode, clock divided by 8  | 1.7 .. 2.0 MHz |
+      | 1    |    1 |           -----//-----             | 1.7 .. 2.0 MHz |
+      | 0    |    1 | New mode for TT05, no clock divider| 250 .. 500 kHZ |
+      | 1    |    0 | New mode for TT05, clock div. 128  |  25 .. 50  MHz |
 
 # A description of what the inputs do (e.g. red button, SPI CLK, SPI MOSI, etc).
   inputs:               
@@ -48,7 +130,7 @@ documentation:
     - DA5 - multiplexed data/address bus
     - DA6 - multiplexed data/address bus
     - DA7 - multiplexed data/address bus
-# A description of what the outputs do (e.g. status LED, SPI MISO, etc)
+# A description of what the outputs do
   outputs:
     - audio out (pwm)
     - digita audio least significant bit
@@ -58,21 +140,21 @@ documentation:
     - digita audio 
     - digita audio 
     - digita audio most significant bit
-# A description of what the bidirectional I/O pins do (e.g. I2C SDA, I2C SCL, etc)
+# A description of what the bidirectional I/O pins do
   bidirectional:
-    - BC1 - bus control
-    - BDIR - bus direction
-    - none
-    - none
-    - none
-    - none
-    - none
-    - none
+    - (in) **BC1** bus control
+    - (in) **BDIR** bus direction
+    - (in) **SEL0** 0 = clock div 8, 1 = no divider
+    - (in) **SEL1** 0 = clock div 8, 1 = clock div 128
+    - (out) channel A (PWM)
+    - (out) channel B (PWM)
+    - (out) channel C (PWM)
+    - (out) AUDIO OUT master (PWM)
 
 # The following fields are optional
   tag:          "psg, music, sound" # comma separated list of tags: test, encryption, experiment, clock, animation, utility, industrial, pwm, fpga, alu, microprocessor, risc, riscv, sensor, signal generator, fft, filter, music, bcd, sound, serial, timer, random number generator, calculator, decoder, counter, puzzle, multiplier, game, oscillator,
-  external_hw:  ""        # Describe any external hardware needed
+  external_hw:  "DAC (for ex. Digilent R2R PMOD), RC filter, amplifier, speaker" # Describe any external hardware needed
   discord:      "rzioma"  # Your discord handle, used for communication and automatically assigning tapeout role after a submission
-  doc_link:     ""        # URL to longer form documentation, eg the README.md in your repository
+  doc_link:     "README.md" # URL to longer form documentation, eg the README.md in your repository
   clock_hz:     2000000   # Clock frequency in Hz (if required)
-  picture:      ""        # relative path to a picture in your repository (must be 512kb or less)
+  picture:      "docs/AY-3-8913.jpg" # relative path to a picture in your repository (must be 512kb or less)
