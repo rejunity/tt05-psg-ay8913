@@ -236,5 +236,7 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     //     .value(uo_out[7:1]),
     //     .out(uo_out[0])
     //     );
+
+    assign uio_out[7:4] = 4'b0000;  // TODO: connect PWMs here
     
 endmodule
