@@ -36,7 +36,7 @@ The AY-3-819x chip family competed with the similar [Texas Instruments SN76489](
 
 ### The reverse engineered AY-3-819x 
 
-This implementation would not be possible without the reverse engineered [schematics and analysis] https://github.com/lvd2/ay-3-8910_reverse_engineered)
+This implementation would not be possible without the reverse engineered [schematics and analysis](https://github.com/lvd2/ay-3-8910_reverse_engineered)
 based on decapped [AY-3-8910](https://siliconpr0n.org/map/gi/ay-3-8910) and [AY-3-8914](https://siliconpr0n.org/map/gi/ay-3-8914) chips.
 
 
