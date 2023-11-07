@@ -99,11 +99,11 @@ documentation:
         |    GPIOx|----------->|D3       |     ,----||----.
         |    GPIOx|----------->|D4       |     |          | 
         |    GPIOx|----------->|D5       |     |  OpAmp   |        Speaker     
-        |    GPIOx|----------->|D6  AUDIO|     |   |\textbackslash     |            /|
-        |    GPIOx|----------->|D7   OUT |-----.---|-\textbackslash    |   C2   .--/ |
+        |    GPIOx|----------->|D6  AUDIO|     |   |`     |            /|
+        |    GPIOx|----------->|D7   OUT |-----.---|-`    |   C2   .--/ |
         `---------'            `---------'         |  }---.---||---|    |
-                                                ,--|+/             `--\textbackslash |
-                                                |  |/               |  \textbackslash|
+                                                ,--|+/             `--` |
+                                                |  |/               |  `|
                                                 |                   |
                                            GND ---             GND ---  
       ```
