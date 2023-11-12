@@ -273,11 +273,11 @@ documentation:
 
       |BDIR|BC1| DA7..DA0  | Explanation |
       |----|---|-----------|----------------------------------------------------------|
-      | 1  | 1 | `xxxx0000`|  **Latch** coarse tone A register $0_{dec} = 0000_{bin}$ |
-      | 1  | 0 | `xxxx0001`|  **Write** high 4-bits of the 440 Hz note $1_{hex} = 0001_{bin}$ |
-      | 1  | 1 | `xxxx0001`|  **Latch** fine tone A register $1_{dec} = 0001_{bin}$ |
-      | 1  | 0 | `00011100`|  **Write** low 8-bits of the 440 Hz note $1C_{hex} = 00011100_{bin}$ |
-      | 1  | 1 | `xxxx1000`|  **Latch** channel A volume register $8_{dec} = 1000_{bin}$ |
+      | 1  | 1 | `xxxx0000`|  **Latch** coarse tone A register address $0 = 0000_{bin}$ |
+      | 1  | 0 | `xxxx0001`|  **Write** high 4-bits of the 440 Hz note $1 = 0001_{bin}$ |
+      | 1  | 1 | `xxxx0001`|  **Latch** fine tone A register address  $1_{dec} = 0001_{bin}$ |
+      | 1  | 0 | `00011100`|  **Write** low 8-bits of the note $1C_{hex} = 00011100_{bin}$ |
+      | 1  | 1 | `xxxx1000`|  **Latch** channel A volume register addr $8 = 1000_{bin}$ |
       | 1  | 0 | `xxx01111`|  **Write** maximum volume level $15_{dec} = 1111_{bin}$ with the envelope disabled |
 
       ```
