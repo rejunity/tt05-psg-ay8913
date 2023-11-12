@@ -57,18 +57,18 @@ documentation:
       | Register| Bits used      | Function         | Description            |
       |---------|----------------|------------------|------------------------|
       | 0       | ```xxxxxxxx``` | Channel A Tone   | 8-bit fine frequency   |
-      | 1       | ```....xxxx``` | --- // ---       | 4-bit coarse frequency |
+      | 1       | ```....xxxx``` | ---//---         | 4-bit coarse frequency |
       | 2       | ```xxxxxxxx``` | Channel B Tone   | 8-bit fine frequency   |
-      | 3       | ```....xxxx``` | --- // ---       | 4-bit coarse frequency |
+      | 3       | ```....xxxx``` | ---//---         | 4-bit coarse frequency |
       | 4       | ```xxxxxxxx``` | Channel C Tone   | 8-bit fine frequency   |
-      | 5       | ```....xxxx``` | --- // ---       | 4-bit coarse frequency |
+      | 5       | ```....xxxx``` | ---//---         | 4-bit coarse frequency |
       | 6       | ```...xxxxx``` | Noise            | 5-bit noise frequency  |
       | 7       | ```..CBACBA``` | Mixer            | Tone and/or Noise per channel |
       | 8       | ```...xxxxx``` | Channel A Volume | Envelope enable or 4-bit amplitude |
       | 9       | ```...xxxxx``` | Channel B Volume | Envelope enable or 4-bit amplitude |
       | 10      | ```...xxxxx``` | Channel C Volume | Envelope enable or 4-bit amplitude |
       | 11      | ```xxxxxxxx``` | Envelope         | 8-bit fine frequency |
-      | 12      | ```xxxxxxxx``` | -- // --         | 8-bit coarse frequency |   
+      | 12      | ```xxxxxxxx``` | ---//---         | 8-bit coarse frequency |   
       | 13      | ```....xxxx``` | Envelope Shape   | 4-bit shape control |
 
 
@@ -247,12 +247,14 @@ documentation:
       | Register | Format     | Description              | Parameters      |
       |---------|------------|--------------------------|-----------------|
       | 0,2,4   | `ffffffff` | A/B/C tone period        | `f` - low bits  |
-      | 1,3,5   | `0000FFFF` | --- // ---               | `F` - high bits |
+      | 1,3,5   | `0000FFFF` | ---//---                 | `F` - high bits |
       | 6       | `000fffff` | Noise period             | `f` - noise period |
-      | 7       | `00CBAcba` | Noise / tone per channel | `CBA` - noise disabled,  `cba` - tone disabled |
-      | 8,9,10  | `000Evvvv` | A/B/C volume             | `E` - envelope enabled,  `v` - volume level |
+      | 7       | `00CBAcba` | Noise / tone per channel | `CBA` - noise off |
+      |         |            |                          | `cba` - tone off |
+      | 8,9,10  | `000Evvvv` | A/B/C volume             | `E` - envelope on |
+      |         |            |                          | `v` - volume level |
       | 11      | `ffffffff` | Envelope period          | `f` - low bits  |
-      | 12      | `FFFFFFFF` | --- // ---               | `F` - high bits  |
+      | 12      | `FFFFFFFF` | ---//---                 | `F` - high bits  |
       | 13      | `0000caAh` | Envelope Shape           | `c` - continue,  `a` - attack,  `A` - alternate,  `h` - hold |
 
       
@@ -269,14 +271,14 @@ documentation:
 
       **An example to play a note at a maximum volume**
 
-      |BDIR|BC1| DA0..DA7  | Explanation |
+      |BDIR|BC1| DA7..DA0  | Explanation |
       |----|---|-----------|----------------------------------------------------------|
       | 1  | 1 | `xxxx0000`|  **Latch** coarse tone A register $0_{dec} = 0000_{bin}$ |
       | 1  | 0 | `xxxx0001`|  **Write** high 4-bits of the 440 Hz note $1_{hex} = 0001_{bin}$ |
       | 1  | 1 | `xxxx0001`|  **Latch** fine tone A register $1_{dec} = 0001_{bin}$ |
       | 1  | 0 | `00011100`|  **Write** low 8-bits of the 440 Hz note $1C_{hex} = 00011100_{bin}$ |
       | 1  | 1 | `xxxx1000`|  **Latch** channel A volume register $8_{dec} = 1000_{bin}$ |
-      | 1  | 0 | `xxx01111`|  **Write** maximum volume level $15_{dec} = 1111_{bin}$ with envelope disabled |
+      | 1  | 0 | `xxx01111`|  **Write** maximum volume level $15_{dec} = 1111_{bin}$ with the envelope disabled |
 
       ```
       Timing diagram
@@ -292,7 +294,7 @@ documentation:
       BC1  _______             _______            ________
          _/       `___________/       `__________/        `___________
 
-      DA0..DA7_____  ________  ________  ________  ________  ________
+      DA7..DA0_____  ________  ________  ________  ________  ________
          _/  0000  `/xxxx0001`/  0001  `/00011100`/  1000  `/xxx01111`
             latch     write     latch      write    latch     
 
