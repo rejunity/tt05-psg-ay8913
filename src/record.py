@@ -19,6 +19,18 @@ VGM_FILENAME = "../music/MISSION76496.bbc50hz.vgm"
 VGM_FILENAME = os.environ.get("VGM", VGM_FILENAME)
 VGM_FILENAME = os.environ.get("VGM_FILENAME", VGM_FILENAME)
 
+VERBOSE=False
+try:
+    VERBOSE = int(os.environ.get("VERBOSE", VERBOSE))
+    if type(VERBOSE) == str:
+        VERBOSE = VERBOSE.lower()
+    if VERBOSE <= 0 or VERBOSE == "no" or VERBOSE == "false":
+        VERBOSE = False
+    elif VERBOSE >= 1 or VERBOSE == "yes" VERBOSE == "true":
+        VERBOSE = True
+except:
+    pass
+
 MAX_TIME = -1
 try:
     MAX_TIME = int(os.environ.get("MAX_TIME", MAX_TIME))
@@ -32,6 +44,9 @@ except:
     pass
 
 def print_chip_state(dut):
+    if not VERBOSE:
+        return
+
     try:
         internal = dut.tt_um_rejunity_ay8913_uut
         print(
@@ -177,7 +192,6 @@ async def play_and_record_wav(dut):
             reg = command[0]
             data = command[1]
             await set_register(dut, reg, data)
-            print_chip_state(dut)
             log_frame.append([reg, data])
         else:
             samples_to_wait = command[1]
