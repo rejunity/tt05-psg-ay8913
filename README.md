@@ -6,6 +6,10 @@
     <img width="30%" src="./docs/AY-3-8913.jpg">
 </p>
 
+# New silicon with **analog** DACs in CI2406
+
+Visit: https://github.com/rejunity/tt07-psg-ay8913-with-analog-dac
+
 # Modern replica of a classic AY-3-8913
 
 This Verilog implementation is a replica of the classical **[AY-3-8913](https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910)** programmable sound generator.
