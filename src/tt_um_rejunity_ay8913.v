@@ -27,6 +27,9 @@ module tt_um_rejunity_ay8913 #( parameter DA7_DA4_UPPER_ADDRESS_MASK = 4'b0000,
     assign uio_out[3:0] =      4'b0000; // the upper 4 pins: 3 channels PWM and master AUDIO_OUT in PWM mode
     wire reset = ! rst_n;
 
+    // List all unused inputs to prevent warnings
+    wire _unused = &{ena, uio_in[7:4], bus_inactive, bus_read, 1'b0};
+
     wire [1:0] master_clock_control = uio_in[3:2];
     wire [7:0] data = ui_in;
 
